@@ -1,0 +1,4 @@
+com/fc/springcloud/controller/mangerController.class
+com/fc/springcloud/service/Impl/ManagerServiceImpl.class
+com/fc/springcloud/JointFassApplicationMain.class
+com/fc/springcloud/service/ManagerService.class
