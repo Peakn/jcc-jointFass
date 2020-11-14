@@ -11,6 +11,7 @@
     <modules>
         <module>Manager</module>
         <module>Worker</module>
+        <module>Grpc-test</module>
     </modules>
 
     <dependencies>
