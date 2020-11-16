@@ -24,9 +24,9 @@ public class ManagerServiceImpl implements ManagerService {
 
     //initialize the FunctionClient
     private FunctionComputeClient initialize(){
-        String accessKey = "LTAI4GKXKDT4w1fQ9ZRfXaM1";
-        String accessSecretKey = "fyRmzUgUlWpBX59NkFgik49L3jF0Rj";
-        String accountId = "1727804214750599";
+        String accessKey = "1234";
+        String accessSecretKey = "5678";
+        String accountId = "0000";
 
         // Initialize FC client
         FunctionComputeClient fcClient = new FunctionComputeClient(REGION, accountId, accessKey, accessSecretKey);

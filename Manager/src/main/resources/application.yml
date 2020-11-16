@@ -1,11 +1,17 @@
 server:
-  port: 8001
+  port: 8002
 
 spring:
   servlet:
     multipart:
       max-file-size: 10MB
       max-request-size: 1MB
-  devtools:
-    restarter:
-      enabled: true
+
+aliyun:
+  service:
+    REGION: cn-hangzhou
+    ROLE: acs:ram::1727804214750599:role/AliyunFCLogExecutionRole
+  user:
+    accessKey: LTAI4GKXKDT4w1fQ9ZRfXaM1
+    accessSecretKey: fyRmzUgUlWpBX59NkFgik49L3jF0Rj
+    accountId: 1727804214750599
