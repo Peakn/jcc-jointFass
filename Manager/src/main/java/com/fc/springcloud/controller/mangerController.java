@@ -1,13 +1,11 @@
 package com.fc.springcloud.controller;
 
-import com.aliyuncs.fc.response.ListFunctionsResponse;
-import com.fc.springcloud.service.Impl.ManagerServiceImpl;
+import com.alibaba.fastjson.JSONObject;
 import com.fc.springcloud.service.ManagerService;
 import com.google.common.io.Files;
 import org.apache.juli.logging.Log;
 import org.apache.juli.logging.LogFactory;
 import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.stereotype.Service;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestController;
@@ -27,13 +25,11 @@ public class mangerController {
     private ManagerService managerService;
 
     @RequestMapping(value = "/createFunction")
-    public String CreateFunction(@RequestParam String functionName,
+    public Object CreateFunction(@RequestParam String functionName,
                                  @RequestParam String runEnv,
                                  @RequestParam String handler,
                                  @RequestParam MultipartFile file) throws IOException{
-//        logger.info(functionName);
-//        logger.info(runEnv);
-//        logger.info(handler);
+
         String filePath = uploadFile(file);
         logger.info(filePath);
         if(filePath != null)
@@ -42,17 +38,19 @@ public class mangerController {
     }
 
     @RequestMapping(value = "/invokeFunction")
-    public String InvokeFunction(@RequestParam String functionName){
-        return managerService.InvokeFunction(functionName);
+    public Object InvokeFunction(@RequestParam String functionName,
+                                 @RequestParam String jsonObject){
+        System.out.println(jsonObject);
+        return managerService.InvokeFunction(functionName,jsonObject);
     }
 
     @RequestMapping(value = "/deleteFunction")
-    public String DeleteFunction(@RequestParam String functionName){
+    public Object DeleteFunction(@RequestParam String functionName){
         return managerService.DeleteFunction(functionName);
     }
 
     @RequestMapping(value = "/updateFunction")
-    public String UpdateFunction(@RequestParam String functionName,
+    public Object UpdateFunction(@RequestParam String functionName,
                                  @RequestParam String runEnv,
                                  @RequestParam String handler,
                                  @RequestParam MultipartFile file) throws IOException{
@@ -63,7 +61,7 @@ public class mangerController {
     }
 
     @RequestMapping(value = "/listFunction")
-    public ListFunctionsResponse ListFunction(){
+    public Object ListFunction(){
         return managerService.ListFunction();
     }
 
@@ -82,12 +80,12 @@ public class mangerController {
             logger.info("Dictory Create Fail.");
             return null;
         }
-        logger.info("文件夹创建成功" + filePath);
+//        logger.info("文件夹创建成功" + filePath);
 
         // 复制jointFass到相应的文件目录，作用为统一成aliyun平台的格式
         Files.copy(new File("/Users/chenpeng/Desktop/demo/code/jointFass.py"),
                 new File(filePath + "jointFass.py"));
-        logger.info("复制JoiintFass到对应文件夹");
+//        logger.info("复制JoiintFass到对应文件夹");
 
         File dest = new File(filePath + fileName);
         logger.info(dest.getPath());

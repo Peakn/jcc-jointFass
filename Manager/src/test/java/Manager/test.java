@@ -1,18 +1,11 @@
 package Manager;
 
 import com.aliyuncs.fc.client.FunctionComputeClient;
-import com.aliyuncs.fc.model.Code;
-import com.aliyuncs.fc.request.CreateFunctionRequest;
 import com.aliyuncs.fc.request.InvokeFunctionRequest;
-import com.aliyuncs.fc.request.UpdateFunctionRequest;
-import com.aliyuncs.fc.response.CreateFunctionResponse;
 import com.aliyuncs.fc.response.InvokeFunctionResponse;
-import com.aliyuncs.fc.response.UpdateFunctionResponse;
-import jdk.nashorn.internal.ir.FunctionNode;
+import com.alibaba.fastjson.JSONObject;
 
 import java.io.IOException;
-import java.util.HashMap;
-import java.util.Map;
 
 public class test {
     private static final String REGION = "cn-hangzhou";
@@ -26,28 +19,19 @@ public class test {
 
         FunctionComputeClient fcClient = new FunctionComputeClient(REGION, accountId, accessKey, accessSecretKey);
 
-        CreateFunctionRequest cfRes = new CreateFunctionRequest(SERVICE_NAME);
-        cfRes.setFunctionName("test4");
-        cfRes.setRuntime("python3");
-        cfRes.setHandler("counter.handler");
-        Code code = new Code().setDir("/Users/chenpeng/Desktop/jcc-jointFass/code");
-        cfRes.setCode(code);
+        InvokeFunctionRequest invkReq = new InvokeFunctionRequest(SERVICE_NAME, "test5");
+        JSONObject jsonObject = new JSONObject();
+        jsonObject.put("str1", "cccpppp ");
+        jsonObject.put("str2", "come on");
+        System.out.println(jsonObject);
+        String payload = jsonObject.toJSONString();
+        System.out.println("payload: " + payload);
 
-        CreateFunctionResponse cfResp = fcClient.createFunction(cfRes);
-        System.out.println(cfResp.getEnvironmentVariables());
+        invkReq.setPayload(payload.getBytes());
 
-        InvokeFunctionRequest invkReq = new InvokeFunctionRequest(SERVICE_NAME, "test4");
-        String a = "Hello FunctionCompute!";
-        invkReq.setPayload(a.getBytes());
         InvokeFunctionResponse invkResp = fcClient.invokeFunction(invkReq);
+
         System.out.println("Function invoke success, requestedId: " + invkResp.getRequestId());
         System.out.println("Run result：" + new String(invkResp.getContent()));
-        System.out.println("Run logs: " + invkResp.getLogResult());
-
-//
-//        System.out.println("******************update******************");
-//        UpdateFunctionRequest ufReq = new UpdateFunctionRequest(SERVICE_NAME, "test4");
-//        UpdateFunctionResponse ufResp = fcClient.updateFunction(ufReq);
-//        System.out.println(ufResp.getEnvironmentVariables());
     }
 }
