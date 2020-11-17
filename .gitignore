@@ -28,4 +28,4 @@ hs_err_pid*
 # production
 target/
 
-.DS_Store
+*.DS_Store
