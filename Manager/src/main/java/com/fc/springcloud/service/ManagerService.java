@@ -1,6 +1,7 @@
 package com.fc.springcloud.service;
 
 import com.alibaba.fastjson.JSONObject;
+import com.aliyuncs.fc.client.FunctionComputeClient;
 
 import java.io.IOException;
 
@@ -14,7 +15,7 @@ public interface ManagerService {
      * 5. DeleteFunction
      */
 
-    public Object CreateFunction(String functionName,String codeDir, String runTimeEnvir, String handler) throws IOException;
+    public Object CreateFunction(String functionName, String codeDir, String runTimeEnvir, String handler) throws IOException;
     public Object InvokeFunction(String functionName,String jsonObject);
     public Object UpdateFunction(String functionName,String codeDir, String runTimeEnvir, String handler) throws IOException;
     public Object ListFunction();

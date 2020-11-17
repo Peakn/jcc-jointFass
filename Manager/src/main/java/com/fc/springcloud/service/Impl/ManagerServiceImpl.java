@@ -1,11 +1,8 @@
 package com.fc.springcloud.service.Impl;
 
-import com.alibaba.fastjson.JSONObject;
-import com.fc.springcloud.provider.AliCloudProvider;
 import com.fc.springcloud.provider.PlatformProvider;
 import com.fc.springcloud.service.ManagerService;
-import org.apache.juli.logging.Log;
-import org.apache.juli.logging.LogFactory;
+import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 
 import java.io.IOException;
@@ -13,13 +10,8 @@ import java.io.IOException;
 @Service
 public class ManagerServiceImpl implements ManagerService {
 
-    private static final Log logger = LogFactory.getLog(ManagerService.class);
-
-    private static final String REGION = "cn-hangzhou";
-    private static final String SERVICE_NAME = "demo";
-    private static final String ROLE = "acs:ram::1727804214750599:role/AliyunFCLogExecutionRole";
-
-    private PlatformProvider platformProvider = new AliCloudProvider();
+    @Autowired
+    private PlatformProvider platformProvider;
 
     public Object CreateFunction(String functionName, String codeDir, String runTimeEnvir, String handler) throws IOException {
         return platformProvider.CreateFunction(functionName, codeDir, runTimeEnvir, handler);

@@ -1,63 +1,48 @@
-package com.fc.springcloud.provider;
+package com.fc.springcloud.provider.Impl;
 
-import com.alibaba.fastjson.JSONObject;
 import com.aliyuncs.fc.client.FunctionComputeClient;
 import com.aliyuncs.fc.exceptions.ClientException;
 import com.aliyuncs.fc.model.Code;
 import com.aliyuncs.fc.request.*;
 import com.aliyuncs.fc.response.*;
+import com.fc.springcloud.config.AliyunConfig;
+import com.fc.springcloud.provider.PlatformProvider;
 import com.fc.springcloud.service.ManagerService;
 import org.apache.juli.logging.Log;
 import org.apache.juli.logging.LogFactory;
-import org.springframework.beans.factory.annotation.Value;
-import org.springframework.stereotype.Component;
+import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.stereotype.Service;
 
 import java.io.IOException;
 
-@Component
+@Service
 public class AliCloudProvider implements PlatformProvider {
     private static final Log logger = LogFactory.getLog(ManagerService.class);
 
-    @Value("aliyun.user.accessKey")
-    private String accessKey;
-    @Value("aliyun.user.accessSecretKey")
-    private String accessSecretKey;
-    @Value("aliyun.user.accountId")
-    private String accountId;
-
-    @Value("aliyun.service.REGION")
-    private String REGION;
-    @Value("aliyun.service.ROLE")
-    private String ROLE;
-
     private static final String SERVICE_NAME = "demo";
 
-    //initialize the FunctionClient
-    private FunctionComputeClient initialize(){
-        // Initialize FC client
-        FunctionComputeClient fcClient = new FunctionComputeClient(REGION, accountId, accessKey, accessSecretKey);
-        return fcClient;
-    }
-    //Create Service
-    public void CreateService(String serviceName){
-        //Initialize FC Client
-        FunctionComputeClient fcClient = this.initialize();
+    @Autowired
+    AliyunConfig config;
 
+    @Autowired
+    private FunctionComputeClient fcClient;
+    @Autowired
+    private String role;
+
+    //Create Service
+    public Object CreateService(String serviceName){
         //Create Service
         CreateServiceRequest csReq = new CreateServiceRequest();
         csReq.setServiceName(serviceName);
         csReq.setDescription("The service aims at jointFass.");
-        csReq.setRole(ROLE);
+        csReq.setRole(role);
         CreateServiceResponse csResp = fcClient.createService(csReq);
         logger.info("Created service, request ID " + csResp.getRequestId());
+        return csResp;
     }
 
     @Override
     public Object CreateFunction(String functionName, String codeDir, String runTimeEnvir, String handler) throws IOException {
-        FunctionComputeClient fcClient = this.initialize();
-
-        logger.info("进入这里来了");
-
         // Create a function
         CreateFunctionRequest cfReq = new CreateFunctionRequest(SERVICE_NAME);
         cfReq.setFunctionName(functionName);
@@ -94,10 +79,8 @@ public class AliCloudProvider implements PlatformProvider {
 
     @Override
     public Object InvokeFunction(String functionName, String jsonObject) {
-        FunctionComputeClient fcClient = this.initialize();
 
         InvokeFunctionRequest invkReq = new InvokeFunctionRequest(SERVICE_NAME, functionName);
-        logger.info("进入这里来了");
 
         //设置参数
 //        String payload = jsonObject.toJSONString();
@@ -113,8 +96,6 @@ public class AliCloudProvider implements PlatformProvider {
 
     @Override
     public Object UpdateFunction(String functionName, String codeDir, String runTimeEnvir, String handler) throws IOException {
-        FunctionComputeClient fcClient = this.initialize();
-
         UpdateFunctionRequest ufReq = new UpdateFunctionRequest(SERVICE_NAME, functionName);
         ufReq.setDescription("Update Function");
 
@@ -141,8 +122,6 @@ public class AliCloudProvider implements PlatformProvider {
 
     @Override
     public Object DeleteFunction(String functionName) {
-        FunctionComputeClient fcClient = this.initialize();
-
         DeleteFunctionRequest dfRep = new DeleteFunctionRequest(SERVICE_NAME, functionName);
         try {
             DeleteFunctionResponse dfResp = fcClient.deleteFunction(dfRep);
@@ -161,8 +140,6 @@ public class AliCloudProvider implements PlatformProvider {
 
     @Override
     public Object ListFunction() {
-        FunctionComputeClient fcClient = this.initialize();
-
         ListFunctionsRequest lfReq = new ListFunctionsRequest(SERVICE_NAME);
         ListFunctionsResponse lfResp = fcClient.listFunctions(lfReq);
         return lfResp;

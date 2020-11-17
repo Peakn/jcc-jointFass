@@ -1,6 +1,7 @@
 package com.fc.springcloud.provider;
 
 import com.alibaba.fastjson.JSONObject;
+import com.aliyuncs.fc.client.FunctionComputeClient;
 
 import java.io.IOException;
 
@@ -8,6 +9,7 @@ import java.io.IOException;
 // the implementation choice depends on other callee choose like invoke logic
 // we suggest that write PlatformProvider.BuildByProvider(ProviderName provider)
 // or a builder like use Lombok
+
 public interface PlatformProvider {
     public static PlatformProvider BuildByProvider(ProviderName provider) {
         switch (provider) {
@@ -23,8 +25,10 @@ public interface PlatformProvider {
         return null;
     }
     // define other function here like createFunction
+    //createService
+    public Object CreateService(String serviceName);
     // create Function
-    public Object CreateFunction(String functionName,String codeDir, String runTimeEnvir, String handler) throws IOException;
+    public Object CreateFunction(String functionName, String codeDir, String runTimeEnvir, String handler) throws IOException;
     // invoke function
     public Object InvokeFunction(String functionName, String jsonObject);
     //update function

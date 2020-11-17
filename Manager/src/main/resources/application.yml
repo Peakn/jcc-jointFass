@@ -1,11 +1,4 @@
-server:
-  port: 8001
-
 spring:
-  servlet:
-    multipart:
-      max-file-size: 10MB
-      max-request-size: 1MB
-  devtools:
-    restarter:
-      enabled: true
+  profiles:
+#    active: dev
+    active: test

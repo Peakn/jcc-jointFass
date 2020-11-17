@@ -1,6 +1,5 @@
 package com.fc.springcloud.controller;
 
-import com.alibaba.fastjson.JSONObject;
 import com.fc.springcloud.service.ManagerService;
 import com.google.common.io.Files;
 import org.apache.juli.logging.Log;
@@ -40,7 +39,7 @@ public class mangerController {
     @RequestMapping(value = "/invokeFunction")
     public Object InvokeFunction(@RequestParam String functionName,
                                  @RequestParam String jsonObject){
-        System.out.println(jsonObject);
+        logger.info(jsonObject);
         return managerService.InvokeFunction(functionName,jsonObject);
     }
 
@@ -80,7 +79,6 @@ public class mangerController {
             logger.info("Dictory Create Fail.");
             return null;
         }
-//        logger.info("文件夹创建成功" + filePath);
 
         // 复制jointFass到相应的文件目录，作用为统一成aliyun平台的格式
         Files.copy(new File("/Users/chenpeng/Desktop/demo/code/jointFass.py"),
