@@ -1,7 +1,7 @@
 package com.fc.springcloud.provider;
 
 import com.fc.springcloud.provider.Impl.AliCloudProvider;
-import com.fc.springcloud.provider.Impl.HCloudProvider;
+import com.fc.springcloud.provider.Impl.hcloudprovider.HCloudProvider;
 import lombok.NoArgsConstructor;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Component;
@@ -26,5 +26,8 @@ public class ProviderBuilder {
       }
     }
     return null;
+  }
+  public HCloudProvider GethCloudProvider() {
+    return hCloudProvider;
   }
 }

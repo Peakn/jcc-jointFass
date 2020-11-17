@@ -9,6 +9,8 @@ spring:
   devtools:
     restarter:
       enabled: true
+hcloud:
+  port: 7777
 aliyun:
   service:
     REGION: cn-hangzhou

@@ -2,6 +2,8 @@ spring:
   profiles:
 #    active: dev
     active: test
+hcloud:
+  port: 7777
 aliyun:
   service:
     REGION: cn-hangzhou
