@@ -1,0 +1,23 @@
+syntax = "proto3";
+
+option go_package = ".;manager";
+option java_package = "jointfaas.manager";
+package manager;
+
+service Manager {
+    rpc Register(RegisterRequest) returns (RegisterResponse) {}
+}
+
+message RegisterRequest {
+    string id = 1;
+    string addr = 2;
+}
+
+message RegisterResponse {
+    enum Code {
+        OK = 0;
+        ERROR = 1;
+    }
+    Code code = 1;
+    string msg = 2;
+}

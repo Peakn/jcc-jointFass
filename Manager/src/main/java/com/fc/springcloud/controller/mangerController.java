@@ -32,7 +32,7 @@ public class mangerController {
         String filePath = uploadFile(file);
         logger.info(filePath);
         if(filePath != null)
-            return managerService.CreateFunction(functionName, filePath, runEnv, "jointFass.handler");
+            return managerService.CreateFunction(functionName, filePath, runEnv, "jointFaas.handler");
         return "Create Function Fail. File Upload Fail.";
     }
 
@@ -55,7 +55,7 @@ public class mangerController {
                                  @RequestParam MultipartFile file) throws IOException{
         String filePath = uploadFile(file);
         if(filePath != null)
-            return managerService.UpdateFunction(functionName, filePath, runEnv, "jointFass.handler");
+            return managerService.UpdateFunction(functionName, filePath, runEnv, "jointFaas.handler");
         return "Update Function Fail. File Upload Fail.";
     }
 
@@ -80,9 +80,9 @@ public class mangerController {
             return null;
         }
 
-        // 复制jointFass到相应的文件目录，作用为统一成aliyun平台的格式
-        Files.copy(new File("/Users/chenpeng/Desktop/demo/code/jointFass.py"),
-                new File(filePath + "jointFass.py"));
+        // 复制jointFaas到相应的文件目录，作用为统一成aliyun平台的格式
+        Files.copy(new File("/Users/chenpeng/Desktop/demo/code/jointFaas.py"),
+                new File(filePath + "jointFaas.py"));
 //        logger.info("复制JoiintFass到对应文件夹");
 
         File dest = new File(filePath + fileName);

@@ -8,14 +8,17 @@ import com.aliyuncs.fc.response.*;
 import com.fc.springcloud.config.AliyunConfig;
 import com.fc.springcloud.provider.PlatformProvider;
 import com.fc.springcloud.service.ManagerService;
+import lombok.NoArgsConstructor;
 import org.apache.juli.logging.Log;
 import org.apache.juli.logging.LogFactory;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.stereotype.Component;
 import org.springframework.stereotype.Service;
 
 import java.io.IOException;
 
-@Service
+@Component
+@NoArgsConstructor
 public class AliCloudProvider implements PlatformProvider {
     private static final Log logger = LogFactory.getLog(ManagerService.class);
 
@@ -34,7 +37,7 @@ public class AliCloudProvider implements PlatformProvider {
         //Create Service
         CreateServiceRequest csReq = new CreateServiceRequest();
         csReq.setServiceName(serviceName);
-        csReq.setDescription("The service aims at jointFass.");
+        csReq.setDescription("The service aims at jointFaas.");
         csReq.setRole(role);
         CreateServiceResponse csResp = fcClient.createService(csReq);
         logger.info("Created service, request ID " + csResp.getRequestId());

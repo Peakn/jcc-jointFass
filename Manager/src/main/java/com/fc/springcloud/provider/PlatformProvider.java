@@ -11,19 +11,6 @@ import java.io.IOException;
 // or a builder like use Lombok
 
 public interface PlatformProvider {
-    public static PlatformProvider BuildByProvider(ProviderName provider) {
-        switch (provider) {
-            case ALICLOUD: {
-                // init AliCloud here
-                break;
-            }
-            case HCLOUD: {
-                // init HCloud Provider here, now it is not supported.
-                break;
-            }
-        }
-        return null;
-    }
     // define other function here like createFunction
     //createService
     public Object CreateService(String serviceName);
