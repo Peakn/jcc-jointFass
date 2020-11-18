@@ -16,6 +16,7 @@ import java.io.IOException;
 import java.util.List;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
+import java.util.concurrent.TimeUnit;
 import jointfaas.manager.ManagerGrpc;
 import jointfaas.manager.ManagerGrpc.ManagerBlockingStub;
 import jointfaas.manager.ManagerOuterClass;
@@ -53,6 +54,8 @@ public class WorkerMaintainerServerTest {
 
   final String workerId = "1";
   final String testFuncName = "test-func";
+  final String testRetryFuncName = "test-retry";
+  final String testRuntimeErrorFuncName = "test-runtime-error";
   final String testCodeURI = "1";
   final String testRuntime = "java";
   final String errorImage = "errorImage";
@@ -62,7 +65,25 @@ public class WorkerMaintainerServerTest {
       new WorkerImplBase() {
         @Override
         public void invoke(InvokeRequest request, StreamObserver<InvokeResponse> responseObserver) {
-          // todo
+          if (request.getName().equals(testFuncName)) {
+            responseObserver.onNext(InvokeResponse.newBuilder()
+                .setCode(InvokeResponse.Code.OK)
+                .setOutput(request.getPayload())
+                .build());
+          } else if (request.getName().equals(testRuntimeErrorFuncName)) {
+            responseObserver.onNext(InvokeResponse.newBuilder()
+                .setCode(InvokeResponse.Code.RUNTIME_ERROR)
+                .build());
+          } else if (request.getName().equals(testRetryFuncName)) {
+            responseObserver.onNext(InvokeResponse.newBuilder()
+                .setCode(InvokeResponse.Code.RETRY)
+                .build());
+          } else {
+            responseObserver.onNext(InvokeResponse.newBuilder()
+                .setCode(InvokeResponse.Code.NO_SUCH_FUNCTION)
+                .build());
+          }
+          responseObserver.onCompleted();
         }
 
         @Override
@@ -83,7 +104,7 @@ public class WorkerMaintainerServerTest {
             responseObserver.onNext(InitFunctionResponse.newBuilder()
                 .setCode(InitFunctionResponse.Code.ERROR)
                 .build());
-          } else if(request.getImage().equals(defaultImage)) {
+          } else if (request.getImage().equals(defaultImage)) {
             responseObserver.onNext(InitFunctionResponse.newBuilder()
                 .setCode(InitFunctionResponse.Code.OK)
                 .build());
@@ -150,8 +171,45 @@ public class WorkerMaintainerServerTest {
     Assert.assertTrue(workerList.contains(workerId));
   }
 
+  @Test
+  public void TestInvokeFunction() {
+    testResource.setImage(defaultImage);
+    this.maintainerServer.initFunction(workerId, testResource);
+    List<String> workerList = this.maintainerServer.getFunctionWorkerMap()
+        .get(testFuncName);
+    Assert.assertTrue(workerList.contains(workerId));
+    byte[] output = this.maintainerServer.invokeFunction(testResource, new byte[1]);
+    Assert.assertNotNull(output);
+  }
+
+  @Test
+  public void TestInvokeRuntimeErrorFunction() {
+    testResource.setImage(defaultImage);
+    testResource.setFuncName(testRuntimeErrorFuncName);
+    this.maintainerServer.initFunction(workerId, testResource);
+    List<String> workerList = this.maintainerServer.getFunctionWorkerMap()
+        .get(testFuncName);
+    Assert.assertTrue(workerList.contains(workerId));
+    byte[] output = this.maintainerServer.invokeFunction(testResource, new byte[1]);
+    Assert.assertNull(output);
+  }
+
+  @Test
+  public void TestInvokeNoSuchFunctionFunction() {
+    testResource.setImage(defaultImage);
+    testResource.setFuncName(testRuntimeErrorFuncName);
+    this.maintainerServer.initFunction(workerId, testResource);
+    List<String> workerList = this.maintainerServer.getFunctionWorkerMap()
+        .get(testFuncName);
+    Assert.assertTrue(workerList.contains(workerId));
+    byte[] output = this.maintainerServer.invokeFunction(testResource, new byte[1]);
+    Assert.assertNull(output);
+  }
+
   @After
-  public void tearDown() {
-    
+  public void tearDown() throws InterruptedException {
+    channel.shutdown().awaitTermination(1, TimeUnit.SECONDS);
+    workerChannel.shutdown().awaitTermination(1, TimeUnit.SECONDS);
+    backend.shutdown();
   }
 }

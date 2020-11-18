@@ -103,7 +103,7 @@ public class HCloudTest {
             .setAddr("127.0.0.1:" + String.valueOf(8080)) // unused port
             .setId(workerId)
             .build());
-    if(!resp.getCode().equals(Code.OK)) {
+    if (!resp.getCode().equals(Code.OK)) {
       System.exit(-1);
     }
   }
@@ -115,23 +115,24 @@ public class HCloudTest {
     Assert.assertNull(result);
     try {
       this.hCloudProvider.CreateFunction(testFuncName, testCodeURI, testRuntime, "");
-    } catch(CreateException e) {
+    } catch (CreateException e) {
       Assert.assertEquals(1, 1);
       return;
     }
-    Assert.assertEquals(1,0);
+    Assert.assertEquals(1, 0);
   }
 
   @Test
   public void testCreateErrorRuntimeFunction() {
     // handler is deprecated parameter
     try {
-      Object result = this.hCloudProvider.CreateFunction(testFuncName, testCodeURI, testRuntime + "1", "");
-    } catch(RuntimeEnvironmentException e) {
+      Object result = this.hCloudProvider
+          .CreateFunction(testFuncName, testCodeURI, testRuntime + "1", "");
+    } catch (RuntimeEnvironmentException e) {
       Assert.assertEquals(1, 1);
       return;
     }
-    Assert.assertEquals(1,0);
+    Assert.assertEquals(1, 0);
   }
 
   @Test
@@ -139,7 +140,6 @@ public class HCloudTest {
     this.hCloudProvider.CreateFunction(testFuncName, testCodeURI, testRuntime + "1", "");
     this.hCloudProvider.DeleteFunction(testFuncName);
   }
-
 
 
   @After
