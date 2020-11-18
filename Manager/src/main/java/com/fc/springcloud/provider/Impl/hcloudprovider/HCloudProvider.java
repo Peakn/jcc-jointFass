@@ -1,5 +1,6 @@
 package com.fc.springcloud.provider.Impl.hcloudprovider;
 
+import com.fc.springcloud.provider.Impl.hcloudprovider.exception.CreateException;
 import com.fc.springcloud.provider.Impl.hcloudprovider.exception.RuntimeEnvironmentException;
 import com.fc.springcloud.provider.PlatformProvider;
 import java.io.IOException;
@@ -10,9 +11,6 @@ import java.util.concurrent.Executors;
 import java.util.concurrent.locks.Lock;
 import java.util.concurrent.locks.ReadWriteLock;
 import java.util.concurrent.locks.ReentrantReadWriteLock;
-import lombok.AllArgsConstructor;
-import lombok.Data;
-import lombok.Getter;
 import org.apache.juli.logging.Log;
 import org.apache.juli.logging.LogFactory;
 import org.springframework.stereotype.Component;
@@ -23,13 +21,13 @@ public class HCloudProvider implements PlatformProvider {
   private static final Log logger = LogFactory.getLog(HCloudProvider.class);
 
   private ReadWriteLock readWriteLock;
-  private RegisterServer workerMaintainer;
+  private WorkerMaintainerServer workerMaintainer;
   private Map<String, Resource> functions;
   private ExecutorService backend;
   public HCloudProvider() {
     functions = new HashMap<>();
     readWriteLock = new ReentrantReadWriteLock();
-    workerMaintainer = new RegisterServer(7777);
+    workerMaintainer = new WorkerMaintainerServer(7777);
     backend = Executors.newFixedThreadPool(1);
     backend.execute(new Runnable() {
       @Override
@@ -49,12 +47,10 @@ public class HCloudProvider implements PlatformProvider {
     return null;
   }
 
-  static class CreateException extends RuntimeException {
-
-    public CreateException(String message) {
-      super(message);
-    }
+  public void stop() throws InterruptedException {
+    this.workerMaintainer.stop();
   }
+
 
   // CreateFunction will be called after the code has been storage.
   @Override

@@ -22,5 +22,6 @@ public interface PlatformProvider {
     public Object DeleteFunction(String functionName);
     //list
     // todo thinking about this state should read from database not provider
+    @Deprecated
     public Object ListFunction();
 }

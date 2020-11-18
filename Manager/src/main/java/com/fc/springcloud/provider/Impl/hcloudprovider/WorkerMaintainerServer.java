@@ -17,12 +17,14 @@ import java.util.concurrent.locks.ReadWriteLock;
 import java.util.concurrent.locks.ReentrantReadWriteLock;
 import jointfaas.manager.ManagerGrpc.ManagerImplBase;
 import jointfaas.manager.ManagerOuterClass.RegisterResponse;
+import lombok.Getter;
 import org.apache.juli.logging.Log;
 import org.apache.juli.logging.LogFactory;
 
-public class RegisterServer extends ManagerImplBase {
+@Getter
+public class WorkerMaintainerServer extends ManagerImplBase {
 
-  private static final Log logger = LogFactory.getLog(RegisterServer.class);
+  private static final Log logger = LogFactory.getLog(WorkerMaintainerServer.class);
   // todo find a storage to store these data;
   private Map<String, Worker> workers;
   private Map<String, List<String>> functionWorkerMap;
@@ -30,7 +32,7 @@ public class RegisterServer extends ManagerImplBase {
   private Server server;
   private int port;
 
-  public RegisterServer(int port) {
+  public WorkerMaintainerServer(int port) {
     workers = new HashMap<>();
     functionWorkerMap = new HashMap<>();
     lock = new ReentrantReadWriteLock();
@@ -73,7 +75,7 @@ public class RegisterServer extends ManagerImplBase {
     Worker worker = new Worker();
     worker.setIdentity(request.getId());
     worker.setAddr(request.getAddr());
-    worker.setChannel(ManagedChannelBuilder.forTarget(request.getAddr()).build());
+    worker.setChannel(ManagedChannelBuilder.forTarget(request.getAddr()).usePlaintext().build());
     writeLock.lock();
     if (workers.get(request.getId()) != null) {
       // worker re register
