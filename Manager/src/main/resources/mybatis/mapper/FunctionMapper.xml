@@ -1,0 +1,322 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.fc.springcloud.mapping.FunctionMapper">
+  <resultMap id="BaseResultMap" type="com.fc.springcloud.entity.FunctionDo">
+    <id column="id" jdbcType="BIGINT" property="id" />
+    <result column="function_id" jdbcType="VARCHAR" property="functionId" />
+    <result column="function_name" jdbcType="VARCHAR" property="functionName" />
+    <result column="handler" jdbcType="VARCHAR" property="handler" />
+    <result column="instance_concurrency" jdbcType="INTEGER" property="instanceConcurrency" />
+    <result column="instance_type" jdbcType="VARCHAR" property="instanceType" />
+    <result column="memory_size" jdbcType="INTEGER" property="memorySize" />
+    <result column="region_id" jdbcType="VARCHAR" property="regionId" />
+    <result column="run_env" jdbcType="INTEGER" property="runEnv" />
+    <result column="service_name" jdbcType="VARCHAR" property="serviceName" />
+    <result column="description" jdbcType="VARCHAR" property="description" />
+    <result column="timeout" jdbcType="INTEGER" property="timeout" />
+    <result column="initializer" jdbcType="VARCHAR" property="initializer" />
+    <result column="initialization_timeout" jdbcType="INTEGER" property="initializationTimeout" />
+    <result column="code_size" jdbcType="INTEGER" property="codeSize" />
+    <result column="created_time" jdbcType="TIMESTAMP" property="createdTime" />
+    <result column="created_at" jdbcType="VARCHAR" property="createdAt" />
+    <result column="last_update_time" jdbcType="TIMESTAMP" property="lastUpdateTime" />
+    <result column="last_updated_by" jdbcType="VARCHAR" property="lastUpdatedBy" />
+    <result column="version" jdbcType="INTEGER" property="version" />
+  </resultMap>
+  <sql id="Base_Column_List">
+    id, function_id, function_name, handler, instance_concurrency, instance_type, memory_size, 
+    region_id, run_env, service_name, description, timeout, initializer, initialization_timeout,
+    code_size, created_time, created_at, last_update_time, last_updated_by, version
+  </sql>
+  <select id="selectByPrimaryKey" parameterType="java.lang.Long" resultMap="BaseResultMap">
+    select 
+    <include refid="Base_Column_List" />
+    from t_function
+    where id = #{id,jdbcType=BIGINT}
+  </select>
+  <delete id="deleteByPrimaryKey" parameterType="java.lang.Long">
+    delete from t_function
+    where id = #{id,jdbcType=BIGINT}
+  </delete>
+  <insert id="insert" parameterType="com.fc.springcloud.entity.FunctionDo">
+    insert into t_function (id, function_id, function_name, 
+      handler, instance_concurrency, instance_type, 
+      memory_size, region_id, run_env,
+      service_name, description, timeout, 
+      initializer, initialization_timeout, code_size, 
+      created_time, created_at, last_update_time, 
+      last_updated_by, version)
+    values (#{id,jdbcType=BIGINT}, #{functionId,jdbcType=VARCHAR}, #{functionName,jdbcType=VARCHAR}, 
+      #{handler,jdbcType=VARCHAR}, #{instanceConcurrency,jdbcType=INTEGER}, #{instanceType,jdbcType=VARCHAR}, 
+      #{memorySize,jdbcType=INTEGER}, #{regionId,jdbcType=VARCHAR}, #{runEnv,jdbcType=INTEGER},
+      #{serviceName,jdbcType=VARCHAR}, #{description,jdbcType=VARCHAR}, #{timeout,jdbcType=INTEGER}, 
+      #{initializer,jdbcType=VARCHAR}, #{initializationTimeout,jdbcType=INTEGER}, #{codeSize,jdbcType=INTEGER}, 
+      #{createdTime,jdbcType=TIMESTAMP}, #{createdAt,jdbcType=VARCHAR}, #{lastUpdateTime,jdbcType=TIMESTAMP}, 
+      #{lastUpdatedBy,jdbcType=VARCHAR}, #{version,jdbcType=INTEGER})
+  </insert>
+  <insert id="insertSelective" parameterType="com.fc.springcloud.entity.FunctionDo">
+    insert into t_function
+    <trim prefix="(" suffix=")" suffixOverrides=",">
+      <if test="id != null">
+        id,
+      </if>
+      <if test="functionId != null">
+        function_id,
+      </if>
+      <if test="functionName != null">
+        function_name,
+      </if>
+      <if test="handler != null">
+        handler,
+      </if>
+      <if test="instanceConcurrency != null">
+        instance_concurrency,
+      </if>
+      <if test="instanceType != null">
+        instance_type,
+      </if>
+      <if test="memorySize != null">
+        memory_size,
+      </if>
+      <if test="regionId != null">
+        region_id,
+      </if>
+      <if test="runEnv != null">
+        run_env,
+      </if>
+      <if test="serviceName != null">
+        service_name,
+      </if>
+      <if test="description != null">
+        description,
+      </if>
+      <if test="timeout != null">
+        timeout,
+      </if>
+      <if test="initializer != null">
+        initializer,
+      </if>
+      <if test="initializationTimeout != null">
+        initialization_timeout,
+      </if>
+      <if test="codeSize != null">
+        code_size,
+      </if>
+      <if test="createdTime != null">
+        created_time,
+      </if>
+      <if test="createdAt != null">
+        created_at,
+      </if>
+      <if test="lastUpdateTime != null">
+        last_update_time,
+      </if>
+      <if test="lastUpdatedBy != null">
+        last_updated_by,
+      </if>
+      <if test="version != null">
+        version,
+      </if>
+    </trim>
+    <trim prefix="values (" suffix=")" suffixOverrides=",">
+      <if test="id != null">
+        #{id,jdbcType=BIGINT},
+      </if>
+      <if test="functionId != null">
+        #{functionId,jdbcType=VARCHAR},
+      </if>
+      <if test="functionName != null">
+        #{functionName,jdbcType=VARCHAR},
+      </if>
+      <if test="handler != null">
+        #{handler,jdbcType=VARCHAR},
+      </if>
+      <if test="instanceConcurrency != null">
+        #{instanceConcurrency,jdbcType=INTEGER},
+      </if>
+      <if test="instanceType != null">
+        #{instanceType,jdbcType=VARCHAR},
+      </if>
+      <if test="memorySize != null">
+        #{memorySize,jdbcType=INTEGER},
+      </if>
+      <if test="regionId != null">
+        #{regionId,jdbcType=VARCHAR},
+      </if>
+      <if test="runEnv != null">
+        #{runEnv,jdbcType=INTEGER},
+      </if>
+      <if test="serviceName != null">
+        #{serviceName,jdbcType=VARCHAR},
+      </if>
+      <if test="description != null">
+        #{description,jdbcType=VARCHAR},
+      </if>
+      <if test="timeout != null">
+        #{timeout,jdbcType=INTEGER},
+      </if>
+      <if test="initializer != null">
+        #{initializer,jdbcType=VARCHAR},
+      </if>
+      <if test="initializationTimeout != null">
+        #{initializationTimeout,jdbcType=INTEGER},
+      </if>
+      <if test="codeSize != null">
+        #{codeSize,jdbcType=INTEGER},
+      </if>
+      <if test="createdTime != null">
+        #{createdTime,jdbcType=TIMESTAMP},
+      </if>
+      <if test="createdAt != null">
+        #{createdAt,jdbcType=VARCHAR},
+      </if>
+      <if test="lastUpdateTime != null">
+        #{lastUpdateTime,jdbcType=TIMESTAMP},
+      </if>
+      <if test="lastUpdatedBy != null">
+        #{lastUpdatedBy,jdbcType=VARCHAR},
+      </if>
+      <if test="version != null">
+        #{version,jdbcType=INTEGER},
+      </if>
+    </trim>
+  </insert>
+  <update id="updateByPrimaryKeySelective" parameterType="com.fc.springcloud.entity.FunctionDo">
+    update t_function
+    <set>
+      <if test="functionId != null">
+        function_id = #{functionId,jdbcType=VARCHAR},
+      </if>
+      <if test="functionName != null">
+        function_name = #{functionName,jdbcType=VARCHAR},
+      </if>
+      <if test="handler != null">
+        handler = #{handler,jdbcType=VARCHAR},
+      </if>
+      <if test="instanceConcurrency != null">
+        instance_concurrency = #{instanceConcurrency,jdbcType=INTEGER},
+      </if>
+      <if test="instanceType != null">
+        instance_type = #{instanceType,jdbcType=VARCHAR},
+      </if>
+      <if test="memorySize != null">
+        memory_size = #{memorySize,jdbcType=INTEGER},
+      </if>
+      <if test="regionId != null">
+        region_id = #{regionId,jdbcType=VARCHAR},
+      </if>
+      <if test="runEnv != null">
+        run_env = #{runEnv,jdbcType=INTEGER},
+      </if>
+      <if test="serviceName != null">
+        service_name = #{serviceName,jdbcType=VARCHAR},
+      </if>
+      <if test="description != null">
+        description = #{description,jdbcType=VARCHAR},
+      </if>
+      <if test="timeout != null">
+        timeout = #{timeout,jdbcType=INTEGER},
+      </if>
+      <if test="initializer != null">
+        initializer = #{initializer,jdbcType=VARCHAR},
+      </if>
+      <if test="initializationTimeout != null">
+        initialization_timeout = #{initializationTimeout,jdbcType=INTEGER},
+      </if>
+      <if test="codeSize != null">
+        code_size = #{codeSize,jdbcType=INTEGER},
+      </if>
+      <if test="createdTime != null">
+        created_time = #{createdTime,jdbcType=TIMESTAMP},
+      </if>
+      <if test="createdAt != null">
+        created_at = #{createdAt,jdbcType=VARCHAR},
+      </if>
+      <if test="lastUpdateTime != null">
+        last_update_time = #{lastUpdateTime,jdbcType=TIMESTAMP},
+      </if>
+      <if test="lastUpdatedBy != null">
+        last_updated_by = #{lastUpdatedBy,jdbcType=VARCHAR},
+      </if>
+      <if test="version != null">
+        version = #{version,jdbcType=INTEGER},
+      </if>
+    </set>
+    where id = #{id,jdbcType=BIGINT}
+  </update>
+  <update id="updateByPrimaryKey" parameterType="com.fc.springcloud.entity.FunctionDo">
+    update t_function
+    set function_id = #{functionId,jdbcType=VARCHAR},
+      function_name = #{functionName,jdbcType=VARCHAR},
+      handler = #{handler,jdbcType=VARCHAR},
+      instance_concurrency = #{instanceConcurrency,jdbcType=INTEGER},
+      instance_type = #{instanceType,jdbcType=VARCHAR},
+      memory_size = #{memorySize,jdbcType=INTEGER},
+      region_id = #{regionId,jdbcType=VARCHAR},
+      run_env = #{runEnv,jdbcType=INTEGER},
+      service_name = #{serviceName,jdbcType=VARCHAR},
+      description = #{description,jdbcType=VARCHAR},
+      timeout = #{timeout,jdbcType=INTEGER},
+      initializer = #{initializer,jdbcType=VARCHAR},
+      initialization_timeout = #{initializationTimeout,jdbcType=INTEGER},
+      code_size = #{codeSize,jdbcType=INTEGER},
+      created_time = #{createdTime,jdbcType=TIMESTAMP},
+      created_at = #{createdAt,jdbcType=VARCHAR},
+      last_update_time = #{lastUpdateTime,jdbcType=TIMESTAMP},
+      last_updated_by = #{lastUpdatedBy,jdbcType=VARCHAR},
+      version = #{version,jdbcType=INTEGER}
+    where id = #{id,jdbcType=BIGINT}
+  </update>
+
+  <select id="selectByFunctionName" resultMap="BaseResultMap">
+    select
+    <include refid="Base_Column_List" />
+    from t_function
+    where function_name = #{functionName,jdbcType=VARCHAR} limit 1
+  </select>
+
+  <select id="listFunctionByPages" resultMap="BaseResultMap">
+    select
+    <include refid="Base_Column_List" />
+    from t_function
+    <trim prefix="WHERE" prefixOverrides="AND">
+      <include refid="whereClause"></include>
+    </trim>
+    order by created_time desc, last_update_time desc
+  </select>
+
+  <sql id="whereClause">
+    <if test="functionId != null">
+      AND function_id = #{functionId,jdbcType=VARCHAR}
+    </if>
+    <if test="functionName != null">
+      AND function_name = #{functionName,jdbcType=VARCHAR}
+    </if>
+    <if test="memorySize != null">
+      AND memory_size = #{memorySize,jdbcType=INTEGER}
+    </if>
+    <if test="regionId != null">
+      AND region_id = #{regionId,jdbcType=VARCHAR}
+    </if>
+    <if test="runEnv != null">
+      AND run_env = #{runEnv,jdbcType=INTEGER}
+    </if>
+    <if test="serviceName != null">
+      AND service_name = #{serviceName,jdbcType=VARCHAR}
+    </if>
+    <if test="codeSize != null">
+      AND code_size = #{codeSize,jdbcType=INTEGER}
+    </if>
+    <if test="createdTime != null">
+      AND created_time = #{createdTime,jdbcType=TIMESTAMP}
+    </if>
+    <if test="lastUpdateTime != null">
+      AND last_update_time = #{lastUpdateTime,jdbcType=TIMESTAMP}
+    </if>
+  </sql>
+
+  <delete id="deleteFunctionByFunctionName">
+    delete from t_function
+    where function_name = #{functionName,jdbcType=VARCHAR}
+  </delete>
+</mapper>
