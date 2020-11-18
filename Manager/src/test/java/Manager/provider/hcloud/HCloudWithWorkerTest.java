@@ -1,35 +1,9 @@
 package Manager.provider.hcloud;
 
 
-import static org.mockito.AdditionalAnswers.delegatesTo;
-import static org.mockito.Mockito.mock;
-
 import com.fc.springcloud.provider.Impl.hcloudprovider.HCloudProvider;
-import com.fc.springcloud.provider.Impl.hcloudprovider.exception.CreateException;
 import com.fc.springcloud.provider.Impl.hcloudprovider.exception.RuntimeEnvironmentException;
-import io.grpc.ManagedChannel;
-import io.grpc.ManagedChannelBuilder;
-import io.grpc.Server;
-import io.grpc.inprocess.InProcessChannelBuilder;
-import io.grpc.inprocess.InProcessServerBuilder;
-import io.grpc.stub.StreamObserver;
 import java.io.IOException;
-import java.util.concurrent.TimeUnit;
-import jointfaas.manager.ManagerGrpc;
-import jointfaas.manager.ManagerGrpc.ManagerBlockingStub;
-import jointfaas.manager.ManagerOuterClass;
-import jointfaas.manager.ManagerOuterClass.RegisterResponse.Code;
-import jointfaas.worker.InitFunctionRequest;
-import jointfaas.worker.InitFunctionResponse;
-import jointfaas.worker.InvokeRequest;
-import jointfaas.worker.InvokeResponse;
-import jointfaas.worker.MetricsRequest;
-import jointfaas.worker.MetricsResponse;
-import jointfaas.worker.RegisterRequest;
-import jointfaas.worker.RegisterResponse;
-import jointfaas.worker.ResetRequest;
-import jointfaas.worker.ResetResponse;
-import jointfaas.worker.WorkerGrpc.WorkerImplBase;
 import org.apache.juli.logging.Log;
 import org.apache.juli.logging.LogFactory;
 import org.junit.After;
@@ -52,6 +26,7 @@ public class HCloudWithWorkerTest {
     @Before
     public void setUp() throws IOException, InterruptedException {
         hCloudProvider = new HCloudProvider();
+        logger.info("start sleep");
         Thread.sleep(10000); // wait for manager server start.
     }
 
@@ -60,29 +35,18 @@ public class HCloudWithWorkerTest {
         // handler is deprecated parameter
         Object result = this.hCloudProvider.CreateFunction(testFuncName, testCodeURI, testRuntime, "");
         Assert.assertNull(result);
-        try {
-            this.hCloudProvider.CreateFunction(testFuncName, testCodeURI, testRuntime, "");
-        } catch (CreateException e) {
-            Assert.assertEquals(1, 1);
-            return;
-        }
-        Assert.assertEquals(1, 0);
     }
 
     @Test
-    public void testCreateAndInvokeFunction() {
+    public void testCreateAndInvokeFunction() throws InterruptedException {
         // handler is deprecated parameter
         Object result = this.hCloudProvider.CreateFunction(testFuncName, testCodeURI, testRuntime, "");
         Assert.assertNull(result);
-        try {
-            this.hCloudProvider.CreateFunction(testFuncName, testCodeURI, testRuntime, "");
-        } catch (CreateException e) {
-            Assert.assertEquals(1, 1);
-            return;
-        }
-        Assert.assertEquals(1, 0);
-
         byte[] outputByte = (byte[]) this.hCloudProvider.InvokeFunction(testFuncName, "{}");
+        Assert.assertNull(outputByte);
+        Thread.sleep(10000);
+        outputByte = (byte[]) this.hCloudProvider.InvokeFunction(testFuncName, "{}");
+        Assert.assertNotNull(outputByte);
         logger.info(new String(outputByte));
     }
 

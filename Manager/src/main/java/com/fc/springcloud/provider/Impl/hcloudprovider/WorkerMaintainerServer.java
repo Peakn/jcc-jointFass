@@ -84,10 +84,12 @@ public class WorkerMaintainerServer extends ManagerImplBase {
           .setCode(RegisterResponse.Code.ERROR)
           .build());
     } else {
+      workers.put(request.getId(), worker);
       responseObserver.onNext(RegisterResponse.newBuilder()
           .setMsg("register success")
           .setCode(RegisterResponse.Code.OK)
           .build());
+      logger.info("register success");
     }
     responseObserver.onCompleted();
     writeLock.unlock();
@@ -151,6 +153,7 @@ public class WorkerMaintainerServer extends ManagerImplBase {
   }
 
   public boolean hasWorker(){
-    return workers.size() == 0 ? false : true;
+    logger.info(workers);
+    return workers.size() != 0 ;
   }
 }

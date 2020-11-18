@@ -60,11 +60,11 @@ public class HCloudProvider implements PlatformProvider {
     // just write into memory;
     String image = "";
     switch (runtime) {
-      case "java": {
+      case "java8": {
         image = "registry.cn-shanghai.aliyuncs.com/jointfaas-serverless/env-java:v1.0";
         break;
       }
-      case "python": {
+      case "python3": {
         image = "registry.cn-shanghai.aliyuncs.com/jointfaas-serverless/env-python:v1.0";
         break;
       }

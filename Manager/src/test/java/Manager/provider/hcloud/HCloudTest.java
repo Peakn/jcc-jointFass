@@ -36,7 +36,7 @@ import org.junit.After;
 import org.junit.Assert;
 import org.junit.Before;
 import org.junit.FixMethodOrder;
-import org.junit.Test;
+import org.junit.jupiter.api.Test;
 import org.junit.runners.MethodSorters;
 
 @FixMethodOrder(MethodSorters.NAME_ASCENDING)
@@ -108,7 +108,7 @@ public class HCloudTest {
     }
   }
 
-  @Test
+  @org.junit.jupiter.api.Test
   public void testCreateFunction() {
     // handler is deprecated parameter
     Object result = this.hCloudProvider.CreateFunction(testFuncName, testCodeURI, testRuntime, "");
@@ -122,7 +122,7 @@ public class HCloudTest {
     Assert.assertEquals(1, 0);
   }
 
-  @Test
+  @org.junit.jupiter.api.Test
   public void testCreateErrorRuntimeFunction() {
     // handler is deprecated parameter
     try {
