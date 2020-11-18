@@ -1,6 +1,7 @@
 package com.fc.springcloud.provider.Impl.hcloudprovider;
 
 import com.fc.springcloud.provider.Impl.hcloudprovider.exception.CreateException;
+import com.fc.springcloud.provider.Impl.hcloudprovider.exception.InvokeFunctionException;
 import com.fc.springcloud.provider.Impl.hcloudprovider.exception.RuntimeEnvironmentException;
 import com.fc.springcloud.provider.PlatformProvider;
 import java.io.IOException;
@@ -88,9 +89,18 @@ public class HCloudProvider implements PlatformProvider {
 
   @Override
   public Object InvokeFunction(String funcName, String jsonObject) {
+    // if worker is not found, just return
+    if (!workerMaintainer.hasWorker()){
+      throw new InvokeFunctionException("No registered worker is found");
+    }
     // check function first, if function not found ,just return
     // find a worker logic is in the WorkerMaintainer
-    byte[] output = workerMaintainer.invokeFunction(null, jsonObject.getBytes());
+    Resource resource = functions.get(funcName);
+    if (resource == null){
+      throw new InvokeFunctionException("Can not find the resource");
+    }
+
+    byte[] output = workerMaintainer.invokeFunction(resource, jsonObject.getBytes());
     // todo serialize working
     return output;
   }

@@ -94,19 +94,19 @@ public class WorkerMaintainerServer extends ManagerImplBase {
   }
 
   public byte[] invokeFunction(Resource resource, byte[] input) {
-    // direct hold write lock simply.
-
-    Lock writeLock = lock.writeLock();
-    writeLock.lock();
     List<String> workerList = functionWorkerMap.get(resource.funcName);
     Worker worker = null;
     if (workerList == null) {
       // workers which can run the function are not found.
       // here you should initFunction for a new worker.
-      // todo find a worker
-      // initFuntion
+
+      // find a worker randomly
+       List<String> workerIds = new ArrayList<String>(workers.keySet());
+       worker = workers.get(workerIds.get((int) (Math.random() * workerIds.size()) ));
+       initFunction(worker.getIdentity(), resource);
     }  else {
-      // choose a worker in the array.
+      // randomly choose a worker in the array.
+      worker = workers.get(workerList.get( (int) (Math.random() * workerList.size())));
     }
     byte[] output = null;
     try {
@@ -114,7 +114,6 @@ public class WorkerMaintainerServer extends ManagerImplBase {
     } catch (ChannelException e) {
       logger.fatal(e.getMessage() + " " + e.getIdentity());
     }
-    writeLock.unlock();
     return output;
   }
 
@@ -149,5 +148,9 @@ public class WorkerMaintainerServer extends ManagerImplBase {
     writeLock.lock();
     functionWorkerMap.remove(funcName);
     writeLock.unlock();
+  }
+
+  public boolean hasWorker(){
+    return workers.size() == 0 ? false : true;
   }
 }

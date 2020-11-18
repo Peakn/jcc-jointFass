@@ -15,12 +15,32 @@ public class ManagerServiceImpl implements ManagerService {
 
   public Object CreateFunction(String functionName, String codeDir, String runTimeEnvir,
       String handler) throws IOException {
-    return builder.Build(ProviderName.ALICLOUD)
-        .CreateFunction(functionName, codeDir, runTimeEnvir, handler);
+    try{
+      builder.Build(ProviderName.HCLOUD)
+              .CreateFunction(functionName, codeDir, runTimeEnvir, handler);
+    } catch (Exception e){
+      return "Create function to HCloud error";
+    }
+
+    try{
+      builder.Build(ProviderName.ALICLOUD)
+              .CreateFunction(functionName, codeDir, runTimeEnvir, handler);
+    } catch (Exception e){
+      return "Create function to AliCloud error";
+    }
+    return null;
   }
 
   public Object InvokeFunction(String functionName, String jsonObject) {
-    return builder.Build(ProviderName.ALICLOUD).InvokeFunction(functionName, jsonObject);
+    Object retVal;
+    try{
+      retVal = builder.Build(ProviderName.HCLOUD).InvokeFunction(functionName, jsonObject);
+      return retVal;
+
+    } catch (Exception e){
+      retVal = builder.Build(ProviderName.ALICLOUD).InvokeFunction(functionName, jsonObject);
+      return retVal;
+    }
   }
 
   public Object UpdateFunction(String functionName, String codeDir, String runTimeEnvir,
