@@ -93,23 +93,24 @@ public class WorkerMaintainerServer extends ManagerImplBase {
     writeLock.unlock();
   }
 
-  public byte[] invokeFunction(String funcName, byte[] input) {
+  public byte[] invokeFunction(Resource resource, byte[] input) {
     // direct hold write lock simply.
 
     Lock writeLock = lock.writeLock();
     writeLock.lock();
-    List<String> workerList = functionWorkerMap.get(funcName);
+    List<String> workerList = functionWorkerMap.get(resource.funcName);
     Worker worker = null;
     if (workerList == null) {
       // workers which can run the function are not found.
       // here you should initFunction for a new worker.
       // todo find a worker
+      // initFuntion
     }  else {
       // choose a worker in the array.
     }
     byte[] output = null;
     try {
-      output = worker.invoke(funcName, input);
+      output = worker.invoke(resource.funcName, input);
     } catch (ChannelException e) {
       logger.fatal(e.getMessage() + " " + e.getIdentity());
     }

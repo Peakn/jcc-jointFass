@@ -90,7 +90,7 @@ public class HCloudProvider implements PlatformProvider {
   public Object InvokeFunction(String funcName, String jsonObject) {
     // check function first, if function not found ,just return
     // find a worker logic is in the WorkerMaintainer
-    byte[] output = workerMaintainer.invokeFunction(funcName, jsonObject.getBytes());
+    byte[] output = workerMaintainer.invokeFunction(null, jsonObject.getBytes());
     // todo serialize working
     return output;
   }
