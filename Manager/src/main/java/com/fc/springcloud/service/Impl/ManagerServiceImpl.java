@@ -13,18 +13,18 @@ public class ManagerServiceImpl implements ManagerService {
   @Autowired
   private ProviderBuilder builder;
 
-  public Object CreateFunction(String functionName, String codeDir, String runTimeEnvir,
+  public Object CreateFunction(String functionName, String codeURI, String runTimeEnvir,
       String handler) throws IOException {
     try{
       builder.Build(ProviderName.HCLOUD)
-              .CreateFunction(functionName, codeDir, runTimeEnvir, handler);
+              .CreateFunction(functionName, codeURI, runTimeEnvir, handler);
     } catch (Exception e){
       return "Create function to HCloud error";
     }
 
     try{
       builder.Build(ProviderName.ALICLOUD)
-              .CreateFunction(functionName, codeDir, runTimeEnvir, handler);
+              .CreateFunction(functionName, codeURI, runTimeEnvir, handler);
     } catch (Exception e){
       return "Create function to AliCloud error";
     }

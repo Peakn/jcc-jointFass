@@ -8,18 +8,28 @@ import com.aliyuncs.fc.response.*;
 import com.fc.springcloud.config.AliyunConfig;
 import com.fc.springcloud.provider.PlatformProvider;
 import com.fc.springcloud.service.ManagerService;
+import com.fc.springcloud.util.ZipUtil;
 import lombok.NoArgsConstructor;
+import org.apache.commons.io.FileUtils;
+import org.apache.commons.lang.RandomStringUtils;
 import org.apache.juli.logging.Log;
 import org.apache.juli.logging.LogFactory;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Component;
+import org.springframework.util.Assert;
+import org.springframework.util.ResourceUtils;
 
+import java.io.File;
 import java.io.IOException;
+import java.net.MalformedURLException;
+import java.net.URL;
+import java.nio.file.Files;
+import java.nio.file.Paths;
 
 @Component
 @NoArgsConstructor
 public class AliCloudProvider implements PlatformProvider {
-    private static final Log logger = LogFactory.getLog(ManagerService.class);
+    private static final Log logger = LogFactory.getLog(AliCloudProvider.class);
 
     private static final String SERVICE_NAME = "demo";
 
@@ -43,37 +53,55 @@ public class AliCloudProvider implements PlatformProvider {
         return csResp;
     }
 
+    private byte[] prepareCodeZip(String codeURI, String runtime){
+        File[] addFiles = new File[1];
+        try {
+            File tmpFile = File.createTempFile("tmpFunctionFile",".zip");
+            FileUtils.copyURLToFile(new URL(codeURI), tmpFile);
+            if (runtime == "python3")
+                //append alicloud specific entrypoint into the zipfile
+                addFiles[0] = ResourceUtils.getFile("classpath:static/aliCloud/python3/jointfaas.py");
+            ZipUtil.addFilesToExistingZip(tmpFile, addFiles);
+            return Files.readAllBytes(Paths.get(tmpFile.getPath()));
+        } catch (IOException e) {
+            e.printStackTrace();
+        }
+        return null;
+    }
+
     @Override
-    public Object CreateFunction(String functionName, String codeDir, String runTimeEnvir, String handler) throws IOException {
+    public Object CreateFunction(String functionName, String codeURI, String runTimeEnvir, String handler) throws IOException {
         // Create a function
         CreateFunctionRequest cfReq = new CreateFunctionRequest(SERVICE_NAME);
         cfReq.setFunctionName(functionName);
         cfReq.setDescription("Function for test");
         cfReq.setMemorySize(128);
         cfReq.setRuntime(runTimeEnvir);
-        cfReq.setHandler(handler);
+        cfReq.setHandler("jointfaas.handler");
 
-        // Used in initializer situations.
-        Code code = new Code().setDir(codeDir);
+        byte[] zipCode = prepareCodeZip(codeURI, runTimeEnvir);
+        assert zipCode != null;
+        Code code = new Code().setZipFile(zipCode);
         cfReq.setCode(code);
 
         try {
             CreateFunctionResponse cfResp = fcClient.createFunction(cfReq);
             logger.info("Created function, request ID " + cfResp.getRequestId());
+            logger.info("Create function at time: " + cfResp.getCreatedTime());
             return cfResp;
         }
         catch (ClientException e){
             if(e.getErrorCode().equals("ServerNotFound")){
                 this.CreateService(SERVICE_NAME);
-                this.CreateFunction(functionName, codeDir, runTimeEnvir, handler);
+                this.CreateFunction(functionName, codeURI, runTimeEnvir, handler);
                 logger.info("The Service not exist.we have recreate service and function");
             }
             else if(e.getErrorCode().equals("FunctionAlreadyExists")){
-                this.UpdateFunction(functionName, codeDir, runTimeEnvir, handler);
+                this.UpdateFunction(functionName, codeURI, runTimeEnvir, handler);
                 logger.info("The function has existed, and has been updated.");
             }
             else {
-                logger.info("The function create fail." + e.getErrorCode());
+                logger.info("The function create fail.=, message: " + e.getMessage() + "\n" + e.getErrorMessage() + "\n" + e.getErrorCode());
             }
             return e;
         }
@@ -97,14 +125,16 @@ public class AliCloudProvider implements PlatformProvider {
     }
 
     @Override
-    public Object UpdateFunction(String functionName, String codeDir, String runTimeEnvir, String handler) throws IOException {
+    public Object UpdateFunction(String functionName, String codeURI, String runTimeEnvir, String handler) throws IOException {
         UpdateFunctionRequest ufReq = new UpdateFunctionRequest(SERVICE_NAME, functionName);
         ufReq.setDescription("Update Function");
 
         ufReq.setRuntime(runTimeEnvir);
-        ufReq.setHandler(handler);
+        ufReq.setHandler("jointfaas.handler");
         //更新代码
-        Code code = new Code().setDir(codeDir);
+        byte[] zipCode = prepareCodeZip(codeURI, runTimeEnvir);
+        assert zipCode != null;
+        Code code = new Code().setZipFile(zipCode);
         ufReq.setCode(code);
 
         try {

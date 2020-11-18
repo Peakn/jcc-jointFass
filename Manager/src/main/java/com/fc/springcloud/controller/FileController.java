@@ -6,6 +6,7 @@ import cn.hutool.crypto.SecureUtil;
 import com.fc.springcloud.common.CommonResult;
 import com.fc.springcloud.entity.FunctionFileDocument;
 import com.fc.springcloud.service.FileService;
+import com.fc.springcloud.service.ManagerService;
 import com.fc.springcloud.vo.FunctionFileVo;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.HttpHeaders;
@@ -101,6 +102,9 @@ public class FileController {
             ex.printStackTrace();
             return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body(ex.getMessage());
         }
+
+        //TODO: Upload function code to Aliyun and Hcloud
+
     }
 
     /**

@@ -13,7 +13,7 @@ public interface PlatformProvider {
     // todo createService is AliProvider logic, implement the function into AliProvider and delete the interface.
     public Object CreateService(String serviceName);
     // create Function
-    public Object CreateFunction(String functionName, String codeDir, String runTimeEnvir, String handler) throws IOException;
+    public Object CreateFunction(String functionName, String codeURI, String runTimeEnvir, String handler) throws IOException;
     // invoke function
     public Object InvokeFunction(String functionName, String jsonObject);
     //update function

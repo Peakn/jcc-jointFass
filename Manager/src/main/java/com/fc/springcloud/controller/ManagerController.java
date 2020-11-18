@@ -15,20 +15,20 @@ import java.io.IOException;
 
 @RestController
 @RequestMapping("/manager")
-public class mangerController {
+public class ManagerController {
     private static final String ROOT_FILE = "/Users/chenpeng/Desktop/demo/code";
 
-    private static final Log logger = LogFactory.getLog(mangerController.class);
+    private static final Log logger = LogFactory.getLog(ManagerController.class);
 
     @Autowired
     private ManagerService managerService;
 
     @RequestMapping(value = "/createFunction")
+    @Deprecated
     public Object CreateFunction(@RequestParam String functionName,
                                  @RequestParam String runEnv,
                                  @RequestParam String handler,
                                  @RequestParam MultipartFile file) throws IOException{
-
         String filePath = uploadFile(file);
         logger.info(filePath);
         if(filePath != null)
