@@ -1,16 +1,12 @@
-package com.fc.springcloud.entity;
+package com.fc.springcloud.pojo.vo;
 
-import org.springframework.data.annotation.Id;
-import org.springframework.data.mongodb.core.mapping.Document;
-
+import java.io.Serializable;
 import java.time.LocalDateTime;
 
-@Document
-public class FunctionFileDocument {
+public class FunctionFileVo implements Serializable {
     /**
      * 主键
      */
-    @Id
     private String id;
     /**
      * 函数id

@@ -7,21 +7,17 @@ import com.aliyuncs.fc.request.*;
 import com.aliyuncs.fc.response.*;
 import com.fc.springcloud.config.AliyunConfig;
 import com.fc.springcloud.provider.PlatformProvider;
-import com.fc.springcloud.service.ManagerService;
 import com.fc.springcloud.util.ZipUtil;
 import lombok.NoArgsConstructor;
 import org.apache.commons.io.FileUtils;
-import org.apache.commons.lang.RandomStringUtils;
 import org.apache.juli.logging.Log;
 import org.apache.juli.logging.LogFactory;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Component;
-import org.springframework.util.Assert;
 import org.springframework.util.ResourceUtils;
 
 import java.io.File;
 import java.io.IOException;
-import java.net.MalformedURLException;
 import java.net.URL;
 import java.nio.file.Files;
 import java.nio.file.Paths;
@@ -57,20 +53,16 @@ public class AliCloudProvider implements PlatformProvider {
         }
     }
 
-    private byte[] prepareCodeZip(String codeURI, String runtime){
+    private byte[] prepareCodeZip(String codeURI, String runtime) throws IOException {
         File[] addFiles = new File[1];
-        try {
-            File tmpFile = File.createTempFile("tmpFunctionFile",".zip");
-            FileUtils.copyURLToFile(new URL(codeURI), tmpFile);
-            if (runtime == "python3")
-                //append alicloud specific entrypoint into the zipfile
-                addFiles[0] = ResourceUtils.getFile("classpath:static/aliCloud/python3/jointfaas.py");
-            ZipUtil.addFilesToExistingZip(tmpFile, addFiles);
-            return Files.readAllBytes(Paths.get(tmpFile.getPath()));
-        } catch (IOException e) {
-            e.printStackTrace();
-        }
-        return null;
+
+        File tmpFile = File.createTempFile("tmpFunctionFile",".zip");
+        FileUtils.copyURLToFile(new URL(codeURI), tmpFile);
+        if (runtime == "python3")
+            //append alicloud specific entrypoint into the zipfile
+            addFiles[0] = ResourceUtils.getFile("classpath:static/aliCloud/python3/jointfaas.py");
+        ZipUtil.addFilesToExistingZip(tmpFile, addFiles);
+        return Files.readAllBytes(Paths.get(tmpFile.getPath()));
     }
 
     @Override

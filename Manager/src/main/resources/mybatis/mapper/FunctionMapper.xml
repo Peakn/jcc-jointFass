@@ -1,7 +1,7 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
 <mapper namespace="com.fc.springcloud.mapping.FunctionMapper">
-  <resultMap id="BaseResultMap" type="com.fc.springcloud.entity.FunctionDo">
+  <resultMap id="BaseResultMap" type="com.fc.springcloud.pojo.domain.FunctionDo">
     <id column="id" jdbcType="BIGINT" property="id" />
     <result column="function_id" jdbcType="VARCHAR" property="functionId" />
     <result column="function_name" jdbcType="VARCHAR" property="functionName" />
@@ -38,7 +38,7 @@
     delete from t_function
     where id = #{id,jdbcType=BIGINT}
   </delete>
-  <insert id="insert" parameterType="com.fc.springcloud.entity.FunctionDo">
+  <insert id="insert" parameterType="com.fc.springcloud.pojo.domain.FunctionDo">
     insert into t_function (id, function_id, function_name, 
       handler, instance_concurrency, instance_type, 
       memory_size, region_id, run_env,
@@ -54,7 +54,7 @@
       #{createdTime,jdbcType=TIMESTAMP}, #{createdAt,jdbcType=VARCHAR}, #{lastUpdateTime,jdbcType=TIMESTAMP}, 
       #{lastUpdatedBy,jdbcType=VARCHAR}, #{version,jdbcType=INTEGER})
   </insert>
-  <insert id="insertSelective" parameterType="com.fc.springcloud.entity.FunctionDo">
+  <insert id="insertSelective" parameterType="com.fc.springcloud.pojo.domain.FunctionDo">
     insert into t_function
     <trim prefix="(" suffix=")" suffixOverrides=",">
       <if test="id != null">
@@ -181,7 +181,7 @@
       </if>
     </trim>
   </insert>
-  <update id="updateByPrimaryKeySelective" parameterType="com.fc.springcloud.entity.FunctionDo">
+  <update id="updateByPrimaryKeySelective" parameterType="com.fc.springcloud.pojo.domain.FunctionDo">
     update t_function
     <set>
       <if test="functionId != null">
@@ -244,7 +244,7 @@
     </set>
     where id = #{id,jdbcType=BIGINT}
   </update>
-  <update id="updateByPrimaryKey" parameterType="com.fc.springcloud.entity.FunctionDo">
+  <update id="updateByPrimaryKey" parameterType="com.fc.springcloud.pojo.domain.FunctionDo">
     update t_function
     set function_id = #{functionId,jdbcType=VARCHAR},
       function_name = #{functionName,jdbcType=VARCHAR},
@@ -319,4 +319,15 @@
     delete from t_function
     where function_name = #{functionName,jdbcType=VARCHAR}
   </delete>
+
+  <delete id="deleteFunctionByFunctionId">
+    delete from t_function
+    where function_id = #{functionId,jdbcType=VARCHAR}
+  </delete>
+
+  <select id="selectByFunctionId" resultMap="BaseResultMap">
+    select <include refid="Base_Column_List" />
+    from t_function
+    where function_id = #{functionId,jdbcType=VARCHAR}
+  </select>
 </mapper>

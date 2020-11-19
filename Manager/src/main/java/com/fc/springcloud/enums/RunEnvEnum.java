@@ -10,19 +10,19 @@ public enum RunEnvEnum implements BaseEnum {
     /**
      * python环境
      */
-    PYTHON(0, "python"),
+    python3(0, "python3"),
     /**
      * java环境
      */
-    JAVA(1, "java"),
+    java8(1, "java8"),
     /**
      * nodejs环境
      */
-    NODEJS(3, "nodejs"),
+    nodejs(3, "nodejs"),
     /**
      * golang环境
      */
-    GOLANG(4, "python");
+    golang(4, "python");
 
     private final Integer value;
 

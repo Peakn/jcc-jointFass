@@ -2,11 +2,11 @@ package com.fc.springcloud.service.Impl;
 
 import cn.hutool.core.io.IoUtil;
 import cn.hutool.core.util.IdUtil;
-import com.fc.springcloud.entity.FunctionFileDocument;
+import com.fc.springcloud.pojo.domain.FunctionFileDo;
 import com.fc.springcloud.enums.ResultCode;
 import com.fc.springcloud.exception.OutOfBusinessException;
 import com.fc.springcloud.service.FileService;
-import com.fc.springcloud.vo.FunctionFileVo;
+import com.fc.springcloud.pojo.vo.FunctionFileVo;
 import com.mongodb.client.gridfs.GridFSBucket;
 import com.mongodb.client.gridfs.GridFSDownloadStream;
 import com.mongodb.client.gridfs.model.GridFSFile;
@@ -50,7 +50,7 @@ public class FileServiceImpl implements FileService {
      * @return
      */
     @Override
-    public FunctionFileDocument saveFile(FunctionFileDocument file) {
+    public FunctionFileDo saveFile(FunctionFileDo file) {
         file = mongoTemplate.save(file);
         return file;
     }
@@ -70,7 +70,6 @@ public class FileServiceImpl implements FileService {
         return gridFsId;
     }
 
-
     /**
      * 删除文件
      *
@@ -79,18 +78,18 @@ public class FileServiceImpl implements FileService {
     @Override
     public void removeFile(String id) {
         //根据id查询文件
-        FunctionFileDocument functionFileDocument = mongoTemplate.findById(id, FunctionFileDocument.class);
+        FunctionFileDo functionFileDo = mongoTemplate.findById(id, FunctionFileDo.class);
 
-        if (functionFileDocument == null) {
+        if (functionFileDo == null) {
             logger.error("File is not exist. delete file id:[{}]", id);
             throw new OutOfBusinessException("File is not exist.", ResultCode.OUT_OF_BUSINESS.getCode());
         }
         //根据文件ID删除fs.files和fs.chunks中的记录
-        Query deleteFileQuery = new Query().addCriteria(Criteria.where("filename").is(functionFileDocument.getGridFsId()));
+        Query deleteFileQuery = new Query().addCriteria(Criteria.where("filename").is(functionFileDo.getGridFsId()));
         gridFsTemplate.delete(deleteFileQuery);
         //删除集合fileDocument中的数据
         Query deleteQuery = new Query(Criteria.where("id").is(id));
-        mongoTemplate.remove(deleteQuery, FunctionFileDocument.class);
+        mongoTemplate.remove(deleteQuery, FunctionFileDo.class);
 
     }
 
@@ -101,10 +100,10 @@ public class FileServiceImpl implements FileService {
      * @return
      */
     @Override
-    public Optional<FunctionFileDocument> getFileById(String id) {
-        FunctionFileDocument functionFileDocument = mongoTemplate.findById(id, FunctionFileDocument.class);
-        if (functionFileDocument != null) {
-            Query gridQuery = new Query().addCriteria(Criteria.where("filename").is(functionFileDocument.getGridFsId()));
+    public Optional<FunctionFileDo> getFileById(String id) {
+        FunctionFileDo functionFileDo = mongoTemplate.findById(id, FunctionFileDo.class);
+        if (functionFileDo != null) {
+            Query gridQuery = new Query().addCriteria(Criteria.where("filename").is(functionFileDo.getGridFsId()));
             try {
                 //根据id查询文件
                 GridFSFile fsFile = gridFsTemplate.findOne(gridQuery);
@@ -114,8 +113,8 @@ public class FileServiceImpl implements FileService {
                     //获取流对象
                     GridFsResource resource = new GridFsResource(fsFile, in);
                     //获取数据
-                    functionFileDocument.setContent(IoUtil.readBytes(resource.getInputStream()));
-                    return Optional.of(functionFileDocument);
+                    functionFileDo.setContent(IoUtil.readBytes(resource.getInputStream()));
+                    return Optional.of(functionFileDo);
                 } else {
                     return Optional.empty();
                 }
@@ -135,14 +134,14 @@ public class FileServiceImpl implements FileService {
      * @return
      */
     @Override
-    public List<FunctionFileDocument> listFilesByPage(int pageIndex, int pageSize) {
+    public List<FunctionFileDo> listFilesByPage(int pageIndex, int pageSize) {
         Query query = new Query().with(Sort.by(Sort.Direction.DESC, "uploadDate"));
         long skip = (pageIndex - 1) * pageSize;
         query.skip(skip);
         query.limit(pageSize);
         Field field = query.fields();
         field.exclude("content");
-        List<FunctionFileDocument> files = mongoTemplate.find(query, FunctionFileDocument.class);
+        List<FunctionFileDo> files = mongoTemplate.find(query, FunctionFileDo.class);
         return files;
     }
 
@@ -150,7 +149,6 @@ public class FileServiceImpl implements FileService {
     public void updateFileById(FunctionFileVo functionFileVo) {
         Query query = new Query(Criteria.where("id").is(functionFileVo.getId()));
         Update update = new Update().set("functionId", functionFileVo.getFunctionId());
-        mongoTemplate.updateFirst(query, update, FunctionFileDocument.class);
+        mongoTemplate.updateFirst(query, update, FunctionFileDo.class);
     }
-
 }

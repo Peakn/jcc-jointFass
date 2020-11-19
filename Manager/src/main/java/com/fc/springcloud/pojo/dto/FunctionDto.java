@@ -1,24 +1,24 @@
-package com.fc.springcloud.vo;
+package com.fc.springcloud.pojo.dto;
 
 
-import com.fc.springcloud.entity.AbstractVoEntity;
 import com.fc.springcloud.enums.RunEnvEnum;
+import com.fc.springcloud.pojo.vo.AbstractVoEntity;
+
+import javax.validation.constraints.Min;
+import javax.validation.constraints.NotEmpty;
+import javax.validation.constraints.NotNull;
 
 /**
- * 云计算函数VO
+ * 云计算函数dto
  *
  * @author cossj
- * @date 2020-11-16
+ * @date 2020-11-19
  */
-public class FunctionVo extends AbstractVoEntity {
-    /**
-     * 函数id
-     */
-    private String functionId;
-
+public class FunctionDto extends AbstractVoEntity {
     /**
      * 函数名称
      */
+    @NotEmpty(message = "functionName can not be empty")
     private String functionName;
 
     /**
@@ -39,6 +39,7 @@ public class FunctionVo extends AbstractVoEntity {
     /**
      * 函数执行内存（单位MB）
      */
+    @Min(value = 128, message = "ContainerMemory is too small (min: 128)")
     private Integer memorySize;
 
     /**
@@ -49,6 +50,7 @@ public class FunctionVo extends AbstractVoEntity {
     /**
      * 函数运行环境（nodejs、python、java、golang）
      */
+    @NotNull(message = "Please select the container operating environment")
     private RunEnvEnum runEnv;
 
     /**
@@ -64,6 +66,7 @@ public class FunctionVo extends AbstractVoEntity {
     /**
      * 函数执行超时时间（单位：秒）
      */
+    @Min(value = 1, message = "Timeout is too small (min: 1)")
     private Integer timeout;
 
     /**
@@ -81,13 +84,11 @@ public class FunctionVo extends AbstractVoEntity {
      */
     private Long codeSize;
 
-    public String getFunctionId() {
-        return functionId;
-    }
-
-    public void setFunctionId(String functionId) {
-        this.functionId = functionId;
-    }
+    /**
+     * @return base64编码的文件
+     */
+    @NotNull(message = "")
+    private CodeBase64 code;
 
     public String getFunctionName() {
         return functionName;
@@ -191,5 +192,13 @@ public class FunctionVo extends AbstractVoEntity {
 
     public void setCodeSize(Long codeSize) {
         this.codeSize = codeSize;
+    }
+
+    public CodeBase64 getCode() {
+        return code;
+    }
+
+    public void setCode(CodeBase64 code) {
+        this.code = code;
     }
 }

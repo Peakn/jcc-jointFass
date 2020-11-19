@@ -1,14 +1,14 @@
-package com.fc.springcloud.entity;
+package com.fc.springcloud.pojo.domain;
 
 import java.io.Serializable;
 import java.time.LocalDateTime;
 
 
-public abstract class AbstractDomainEntity implements Serializable {
+public abstract class AbstractDo implements Serializable {
     /**
      * id
      */
-    private Integer id;
+    private Long id;
 
     /**
      * 创建时间
@@ -35,11 +35,11 @@ public abstract class AbstractDomainEntity implements Serializable {
      */
     private Integer version;
 
-    public Integer getId() {
+    public Long getId() {
         return id;
     }
 
-    public void setId(Integer id) {
+    public void setId(Long id) {
         this.id = id;
     }
 

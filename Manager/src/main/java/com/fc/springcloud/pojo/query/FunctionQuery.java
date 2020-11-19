@@ -1,7 +1,7 @@
-package com.fc.springcloud.query;
+package com.fc.springcloud.pojo.query;
 
 
-import com.fc.springcloud.entity.AbstractVoEntity;
+import com.fc.springcloud.pojo.vo.AbstractVoEntity;
 import com.fc.springcloud.enums.RunEnvEnum;
 
 /**

@@ -1,9 +1,11 @@
 package com.fc.springcloud.service;
 
-import com.fc.springcloud.entity.FunctionDo;
-import com.fc.springcloud.query.FunctionQuery;
+import com.fc.springcloud.pojo.domain.FunctionDo;
+import com.fc.springcloud.pojo.dto.FunctionDto;
+import com.fc.springcloud.pojo.query.FunctionQuery;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
+import org.springframework.http.ResponseEntity;
 
 public interface FunctionService {
     int saveFunction(FunctionDo functionDo);
@@ -19,4 +21,10 @@ public interface FunctionService {
     FunctionDo getFunction(String functionName);
 
     int deleteFunctionByFunctionName(String functionName);
+
+    void deleteFunctionByFunctionId(String functionId);
+
+    ResponseEntity updateFunction(FunctionDto functionDto);
+
+    ResponseEntity creatFunction(FunctionDto functionDto);
 }

@@ -2,6 +2,8 @@ server:
   port: 8002
 
 spring:
+  profiles:
+    active: test
   servlet:
     multipart:
       max-file-size: 1024MB

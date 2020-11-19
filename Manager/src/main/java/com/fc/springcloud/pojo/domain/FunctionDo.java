@@ -1,4 +1,4 @@
-package com.fc.springcloud.entity;
+package com.fc.springcloud.pojo.domain;
 
 
 import com.fc.springcloud.enums.RunEnvEnum;
@@ -9,7 +9,7 @@ import com.fc.springcloud.enums.RunEnvEnum;
  * @author cossj
  * @date 2020-11-16
  */
-public class FunctionDo extends AbstractDomainEntity {
+public class FunctionDo extends AbstractDo {
     /**
      * 函数id
      */

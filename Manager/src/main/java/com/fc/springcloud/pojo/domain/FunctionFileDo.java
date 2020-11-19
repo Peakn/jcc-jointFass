@@ -1,17 +1,21 @@
-package com.fc.springcloud.vo;
+package com.fc.springcloud.pojo.domain;
 
-import java.io.Serializable;
+import org.springframework.data.annotation.Id;
+import org.springframework.data.mongodb.core.mapping.Document;
+
 import java.time.LocalDateTime;
 
-public class FunctionFileVo implements Serializable {
+@Document
+public class FunctionFileDo {
     /**
      * 主键
      */
+    @Id
     private String id;
     /**
-     * 函数id
+     * 函数名称
      */
-    private String functionId;
+    private String functionName;
     /**
      * 文件名称
      */
@@ -57,12 +61,12 @@ public class FunctionFileVo implements Serializable {
         this.id = id;
     }
 
-    public String getFunctionId() {
-        return functionId;
+    public String getFunctionName() {
+        return functionName;
     }
 
-    public void setFunctionId(String functionId) {
-        this.functionId = functionId;
+    public void setFunctionName(String functionName) {
+        this.functionName = functionName;
     }
 
     public String getName() {

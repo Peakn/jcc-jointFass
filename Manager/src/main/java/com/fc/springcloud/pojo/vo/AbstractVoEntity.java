@@ -1,4 +1,4 @@
-package com.fc.springcloud.entity;
+package com.fc.springcloud.pojo.vo;
 
 import java.io.Serializable;
 import java.time.LocalDateTime;

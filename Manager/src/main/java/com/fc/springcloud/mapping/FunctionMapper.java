@@ -1,8 +1,8 @@
 package com.fc.springcloud.mapping;
 
 
-import com.fc.springcloud.entity.FunctionDo;
-import com.fc.springcloud.query.FunctionQuery;
+import com.fc.springcloud.pojo.domain.FunctionDo;
+import com.fc.springcloud.pojo.query.FunctionQuery;
 import org.apache.ibatis.annotations.Mapper;
 
 import java.util.List;
@@ -26,4 +26,8 @@ public interface FunctionMapper {
     List<FunctionDo> listFunctionByPages(FunctionQuery functionQuery);
 
     int deleteFunctionByFunctionName(String functionName);
+
+    int deleteFunctionByFunctionId(String functionId);
+
+    FunctionDo selectByFunctionId(String functionId);
 }
