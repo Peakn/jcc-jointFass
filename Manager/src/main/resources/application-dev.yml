@@ -1,6 +1,6 @@
 server:
   port: 8002
-
+  address: 127.0.0.1
 spring:
   servlet:
     multipart:
@@ -38,3 +38,5 @@ pagehelper:
 logging:
   level:
     com.fc.springcloud.mapping: debug
+File:
+  base-dir: ./

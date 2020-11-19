@@ -13,6 +13,7 @@ service Worker {
     rpc Reset(ResetRequest) returns (ResetResponse) {}
     rpc InitFunction(InitFunctionRequest) returns (InitFunctionResponse) {}
     rpc Metrics(MetricsRequest) returns (MetricsResponse) {}
+    rpc GetHeartBeat(stream HeartBeatRequest) returns (stream HeartBeatResponse) {}
 }
 
 message InvokeRequest {
@@ -85,4 +86,12 @@ message MetricsRequest {
 
 message MetricsResponse {
     // TODO
+}
+
+message HeartBeatRequest {
+    string nonce = 1;
+}
+
+message HeartBeatResponse {
+    string nonce = 1;
 }

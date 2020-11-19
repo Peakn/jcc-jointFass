@@ -4,21 +4,33 @@ import com.fc.springcloud.provider.Impl.hcloudprovider.exception.ChannelExceptio
 import com.fc.springcloud.provider.Impl.hcloudprovider.exception.InitFunctionException;
 import com.fc.springcloud.provider.Impl.hcloudprovider.exception.InvokeException;
 import com.fc.springcloud.provider.Impl.hcloudprovider.exception.WorkerNotFoundException;
+import io.grpc.ManagedChannel;
 import io.grpc.ManagedChannelBuilder;
 import io.grpc.Server;
 import io.grpc.ServerBuilder;
+import io.grpc.stub.StreamObserver;
 import java.io.IOException;
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.concurrent.ExecutorService;
+import java.util.concurrent.Executors;
 import java.util.concurrent.TimeUnit;
+import java.util.concurrent.locks.Condition;
 import java.util.concurrent.locks.Lock;
 import java.util.concurrent.locks.ReadWriteLock;
+import java.util.concurrent.locks.ReentrantLock;
 import java.util.concurrent.locks.ReentrantReadWriteLock;
 import jointfaas.manager.ManagerGrpc.ManagerImplBase;
 import jointfaas.manager.ManagerOuterClass.RegisterResponse;
+import jointfaas.worker.HeartBeatRequest;
+import jointfaas.worker.HeartBeatResponse;
+import jointfaas.worker.WorkerGrpc;
+import jointfaas.worker.WorkerGrpc.WorkerStub;
 import lombok.Getter;
+import lombok.Setter;
+import lombok.SneakyThrows;
 import org.apache.juli.logging.Log;
 import org.apache.juli.logging.LogFactory;
 
@@ -33,11 +45,14 @@ public class WorkerMaintainerServer extends ManagerImplBase {
   private Server server;
   private int port;
 
+  private ExecutorService heartbeats;
+
   public WorkerMaintainerServer(int port) {
     workers = new HashMap<>();
     functionWorkerMap = new HashMap<>();
     lock = new ReentrantReadWriteLock();
     this.port = port;
+    heartbeats = Executors.newCachedThreadPool();
   }
 
   public void start() throws IOException {
@@ -68,6 +83,65 @@ public class WorkerMaintainerServer extends ManagerImplBase {
       server.shutdownNow().awaitTermination(5, TimeUnit.SECONDS);
     }
   }
+  @Setter
+  static class HeartBeatClient implements StreamObserver<HeartBeatResponse> {
+
+    private Condition condition;
+    private Lock conditionLock;
+    private ReadWriteLock lock;
+    private Map<String, Worker> workers;
+    private String workerId;
+    private Boolean stop;
+    private StreamObserver<HeartBeatRequest> heartBeatRequestObserver;
+    public HeartBeatClient(ReadWriteLock lock, Map<String, Worker> workers, String workerId) {
+      this.lock = lock;
+      this.conditionLock = new ReentrantLock();
+      this.condition = conditionLock.newCondition();
+      this.workers = workers;
+      this.workerId = workerId;
+      this.stop = false;
+    }
+
+    @SneakyThrows
+    public void start() {
+      do {
+        this.conditionLock.lock();
+        heartBeatRequestObserver.onNext(HeartBeatRequest.newBuilder().setNonce(workerId).build());
+        Thread.sleep(5000);
+        try {
+          condition.await();
+        } catch (InterruptedException e) {
+          e.printStackTrace();
+        }
+      } while(!stop);
+    }
+
+    @Override
+    public void onNext(HeartBeatResponse heartBeatResponse) {
+      logger.info("heartbeat onNext");
+      logger.info(heartBeatResponse.getNonce());
+      conditionLock.lock();
+      condition.signalAll();
+      conditionLock.unlock();
+    }
+
+    @Override
+    public void onError(Throwable throwable) {
+      logger.info("heartbeat onError");
+      logger.fatal(throwable);
+      this.onCompleted();
+      this.stop = true;
+    }
+
+    @Override
+    public void onCompleted() {
+      logger.info("completed");
+      Lock workerLock = lock.writeLock();
+      workerLock.lock();
+      workers.remove(workerId);
+      workerLock.unlock();
+    }
+  }
 
   @Override
   public void register(jointfaas.manager.ManagerOuterClass.RegisterRequest request,
@@ -86,6 +160,20 @@ public class WorkerMaintainerServer extends ManagerImplBase {
           .build());
     } else {
       workers.put(request.getId(), worker);
+      ManagedChannel beatChannel = ManagedChannelBuilder.forTarget(request.getAddr()).usePlaintext()
+          .build();
+      worker.setHeartbeatChannel(beatChannel);
+      heartbeats.execute(new Runnable() {
+        @Override
+        public void run() {
+          String workerId = new String(worker.getIdentity());
+          WorkerStub heartBeatClient = WorkerGrpc.newStub(beatChannel);
+          HeartBeatClient hbc = new HeartBeatClient(lock, workers, workerId);
+          StreamObserver<HeartBeatRequest> heartBeatRequestObserver = heartBeatClient.getHeartBeat(hbc);
+          hbc.setHeartBeatRequestObserver(heartBeatRequestObserver);
+          hbc.start();
+        }
+      });
       responseObserver.onNext(RegisterResponse.newBuilder()
           .setMsg("register success")
           .setCode(RegisterResponse.Code.OK)

@@ -27,6 +27,7 @@ public class Worker {
   private String identity;
   private String addr;
   private ManagedChannel channel;
+  private ManagedChannel heartbeatChannel;
 
   public void initFunction(String funcName, String image, String runtime, String codeURI,
       int memorySize, int timeout) {
