@@ -2,6 +2,7 @@ package com.fc.springcloud.provider.Impl.hcloudprovider;
 
 import com.fc.springcloud.provider.Impl.hcloudprovider.exception.ChannelException;
 import com.fc.springcloud.provider.Impl.hcloudprovider.exception.InitFunctionException;
+import com.fc.springcloud.provider.Impl.hcloudprovider.exception.InvokeException;
 import com.google.protobuf.ByteString;
 import io.grpc.ManagedChannel;
 import jointfaas.worker.InitFunctionRequest;
@@ -49,7 +50,6 @@ public class Worker {
   }
 
   public byte[] invoke(String funcName, byte[] input) {
-    InvokeRequest invokeRequest = InvokeRequest.newBuilder().build();
     if (channel.isTerminated() || channel.isShutdown()) {
       throw new ChannelException("the channel is terminated or shutdown", identity);
     }
@@ -61,13 +61,13 @@ public class Worker {
     if (resp.getCode() == InvokeResponse.Code.OK) {
       return resp.getOutput().toByteArray();
     } else if (resp.getCode() == InvokeResponse.Code.RETRY) {
-      return null;
+      throw new InvokeException("there is no runtime that works", InvokeResponse.Code.RETRY);
     } else if (resp.getCode() == InvokeResponse.Code.NO_SUCH_FUNCTION) {
       logger.warn("no such function at worker " + identity);
-      return null;
+      throw new InvokeException("worker functions and manager functions are inconsistent", InvokeResponse.Code.NO_SUCH_FUNCTION);
     } else if (resp.getCode() == InvokeResponse.Code.RUNTIME_ERROR) {
       logger.warn("runtime error at worker" + identity);
-      return null;
+      throw new InvokeException("runtime error at worker " + identity, InvokeResponse.Code.RUNTIME_ERROR);
     }
     return null;
   }

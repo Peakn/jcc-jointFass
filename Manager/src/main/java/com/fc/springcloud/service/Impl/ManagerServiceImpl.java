@@ -4,28 +4,32 @@ import com.fc.springcloud.provider.ProviderBuilder;
 import com.fc.springcloud.provider.ProviderName;
 import com.fc.springcloud.service.ManagerService;
 import java.io.IOException;
+import org.apache.juli.logging.Log;
+import org.apache.juli.logging.LogFactory;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 
 @Service
 public class ManagerServiceImpl implements ManagerService {
 
+  private static final Log logger = LogFactory.getLog(ManagerServiceImpl.class);
+
   @Autowired
   private ProviderBuilder builder;
 
   public Object CreateFunction(String functionName, String codeURI, String runTimeEnvir,
       String handler) throws IOException {
-    try{
+    try {
       builder.Build(ProviderName.HCLOUD)
-              .CreateFunction(functionName, codeURI, runTimeEnvir, handler);
-    } catch (Exception e){
+          .CreateFunction(functionName, codeURI, runTimeEnvir, handler);
+    } catch (Exception e) {
       return "Create function to HCloud error";
     }
 
-    try{
+    try {
       builder.Build(ProviderName.ALICLOUD)
-              .CreateFunction(functionName, codeURI, runTimeEnvir, handler);
-    } catch (Exception e){
+          .CreateFunction(functionName, codeURI, runTimeEnvir, handler);
+    } catch (Exception e) {
       return "Create function to AliCloud error";
     }
     return null;
@@ -33,11 +37,11 @@ public class ManagerServiceImpl implements ManagerService {
 
   public Object InvokeFunction(String functionName, String jsonObject) {
     Object retVal;
-    try{
+    try {
       retVal = builder.Build(ProviderName.HCLOUD).InvokeFunction(functionName, jsonObject);
       return retVal;
-
-    } catch (Exception e){
+    } catch (Exception e) {
+      logger.warn(e.getMessage());
       retVal = builder.Build(ProviderName.ALICLOUD).InvokeFunction(functionName, jsonObject);
       return retVal;
     }

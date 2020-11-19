@@ -2,6 +2,7 @@ package com.fc.springcloud.provider.Impl.hcloudprovider;
 
 import com.fc.springcloud.provider.Impl.hcloudprovider.exception.ChannelException;
 import com.fc.springcloud.provider.Impl.hcloudprovider.exception.InitFunctionException;
+import com.fc.springcloud.provider.Impl.hcloudprovider.exception.InvokeException;
 import com.fc.springcloud.provider.Impl.hcloudprovider.exception.WorkerNotFoundException;
 import io.grpc.ManagedChannelBuilder;
 import io.grpc.Server;
@@ -115,6 +116,11 @@ public class WorkerMaintainerServer extends ManagerImplBase {
       output = worker.invoke(resource.funcName, input);
     } catch (ChannelException e) {
       logger.fatal(e.getMessage() + " " + e.getIdentity());
+      throw e;
+    } catch (InvokeException e) {
+      // todo here can handle retry, now all will throw exception;
+      logger.fatal(e.getMessage());
+      throw e;
     }
     return output;
   }

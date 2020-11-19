@@ -1,6 +1,7 @@
 package com.fc.springcloud.provider.Impl.hcloudprovider;
 
 import com.fc.springcloud.provider.Impl.hcloudprovider.exception.CreateException;
+import com.fc.springcloud.provider.Impl.hcloudprovider.exception.InvokeException;
 import com.fc.springcloud.provider.Impl.hcloudprovider.exception.InvokeFunctionException;
 import com.fc.springcloud.provider.Impl.hcloudprovider.exception.RuntimeEnvironmentException;
 import com.fc.springcloud.provider.PlatformProvider;
@@ -81,7 +82,7 @@ public class HCloudProvider implements PlatformProvider {
       writeLock.unlock();
     } else {
       writeLock.unlock();
-      throw new CreateException("func " + funcName + " has already been created");
+      throw new CreateException("function " + funcName + " has already been created");
     }
     // todo return what ???
     return null;
@@ -99,10 +100,14 @@ public class HCloudProvider implements PlatformProvider {
     if (resource == null){
       throw new InvokeFunctionException("Can not find the resource");
     }
-
-    byte[] output = workerMaintainer.invokeFunction(resource, jsonObject.getBytes());
-    // todo serialize working
-    return output;
+    try {
+      byte[] output = workerMaintainer.invokeFunction(resource, jsonObject.getBytes());
+      // todo serialize working
+      return output;
+    } catch (InvokeException e) {
+      logger.fatal(e.getMessage());
+      throw e;
+    }
   }
 
   @Override
