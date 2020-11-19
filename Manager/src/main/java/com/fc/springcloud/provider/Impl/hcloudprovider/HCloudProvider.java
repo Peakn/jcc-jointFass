@@ -44,11 +44,6 @@ public class HCloudProvider implements PlatformProvider {
     });
   }
 
-  @Override
-  public Object CreateService(String serviceName) {
-    return null;
-  }
-
   public void stop() throws InterruptedException {
     this.workerMaintainer.stop();
   }
@@ -56,8 +51,7 @@ public class HCloudProvider implements PlatformProvider {
 
   // CreateFunction will be called after the code has been storage.
   @Override
-  public Object CreateFunction(String funcName, String codeURI, String runtime,
-      String handler) {
+  public void CreateFunction(String funcName, String codeURI, String runtime) {
     // just write into memory;
     String image = "";
     switch (runtime) {
@@ -74,7 +68,7 @@ public class HCloudProvider implements PlatformProvider {
       }
     }
     // todo hard code at memorySize and timeout
-    Resource resource = new Resource(funcName, image, runtime, codeURI, 100, 1);
+    Resource resource = new Resource(funcName, image, runtime, codeURI, 128, 60);
     Lock writeLock = readWriteLock.writeLock();
     writeLock.lock();
     if (functions.get(funcName) == null) {
@@ -84,12 +78,10 @@ public class HCloudProvider implements PlatformProvider {
       writeLock.unlock();
       throw new CreateException("function " + funcName + " has already been created");
     }
-    // todo return what ???
-    return null;
   }
 
   @Override
-  public Object InvokeFunction(String funcName, String jsonObject) {
+  public String InvokeFunction(String funcName, String jsonString) {
     // if worker is not found, just return
     if (!workerMaintainer.hasWorker()){
       throw new InvokeFunctionException("No registered worker is found");
@@ -101,9 +93,8 @@ public class HCloudProvider implements PlatformProvider {
       throw new InvokeFunctionException("Can not find the resource");
     }
     try {
-      byte[] output = workerMaintainer.invokeFunction(resource, jsonObject.getBytes());
-      // todo serialize working
-      return output;
+      byte[] output = workerMaintainer.invokeFunction(resource, jsonString.getBytes());
+      return new String(output);
     } catch (InvokeException e) {
       logger.fatal(e.getMessage());
       throw e;
@@ -111,20 +102,17 @@ public class HCloudProvider implements PlatformProvider {
   }
 
   @Override
-  public Object UpdateFunction(String funcName, String codeDir, String runtime,
-      String handler) throws IOException {
+  public void UpdateFunction(String funcName, String codeDir, String runtime) throws IOException {
     logger.warn("hcloud has not supported update function");
-    return null;
   }
 
   @Override
-  public Object DeleteFunction(String funcName) {
+  public void DeleteFunction(String funcName) {
     Lock writeLock = readWriteLock.writeLock();
     writeLock.lock();
     functions.remove(funcName);
     workerMaintainer.DeleteFunction(funcName);
     writeLock.unlock();
-    return null;
   }
 
   @Override

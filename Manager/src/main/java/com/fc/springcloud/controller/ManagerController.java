@@ -32,20 +32,20 @@ public class ManagerController {
         String filePath = uploadFile(file);
         logger.info(filePath);
         if(filePath != null)
-            return managerService.CreateFunction(functionName, filePath, runEnv, "jointFaas.handler");
+            managerService.CreateFunction(functionName, filePath, runEnv);
         return "Create Function Fail. File Upload Fail.";
     }
 
     @RequestMapping(value = "/invokeFunction")
-    public Object InvokeFunction(@RequestParam String functionName,
+    public String InvokeFunction(@RequestParam String functionName,
                                  @RequestParam String jsonObject){
         logger.info(jsonObject);
         return managerService.InvokeFunction(functionName,jsonObject);
     }
 
     @RequestMapping(value = "/deleteFunction")
-    public Object DeleteFunction(@RequestParam String functionName){
-        return managerService.DeleteFunction(functionName);
+    public void DeleteFunction(@RequestParam String functionName){
+        managerService.DeleteFunction(functionName);
     }
 
     @RequestMapping(value = "/updateFunction")
@@ -55,7 +55,7 @@ public class ManagerController {
                                  @RequestParam MultipartFile file) throws IOException{
         String filePath = uploadFile(file);
         if(filePath != null)
-            return managerService.UpdateFunction(functionName, filePath, runEnv, "jointFaas.handler");
+            managerService.UpdateFunction(functionName, filePath, runEnv);
         return "Update Function Fail. File Upload Fail.";
     }
 

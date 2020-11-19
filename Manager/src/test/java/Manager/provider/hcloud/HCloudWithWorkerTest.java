@@ -34,35 +34,33 @@ public class HCloudWithWorkerTest {
   @Test
   public void testCreateFunction() {
     // handler is deprecated parameter
-    Object result = this.hCloudProvider.CreateFunction(testFuncName, testCodeURI, testRuntime, "");
-    Assert.assertNull(result);
+    this.hCloudProvider.CreateFunction(testFuncName, testCodeURI, testRuntime);
   }
 
   @Test
   public void testCreateAndInvokeFunction() throws InterruptedException {
     // handler is deprecated parameter
-    Object result = this.hCloudProvider.CreateFunction(testFuncName, testCodeURI, testRuntime, "");
-    Assert.assertNull(result);
-    byte[] outputByte = null;
+    this.hCloudProvider.CreateFunction(testFuncName, testCodeURI, testRuntime);
+    String outputString = null;
     boolean catchError = false;
     try {
-      outputByte = (byte[]) this.hCloudProvider.InvokeFunction(testFuncName, "{\"a\": \"b\"}");
+      outputString = this.hCloudProvider.InvokeFunction(testFuncName, "{\"a\": \"b\"}");
     } catch (InvokeException e) {
       catchError = true;
     }
     Assert.assertTrue(catchError);
     Thread.sleep(10000);
-    outputByte = (byte[]) this.hCloudProvider.InvokeFunction(testFuncName, "{\"a\": \"b\"}");
-    Assert.assertNotNull(outputByte);
-    logger.info(new String(outputByte));
+    outputString = this.hCloudProvider.InvokeFunction(testFuncName, "{\"a\": \"b\"}");
+    Assert.assertNotNull(outputString);
+    logger.info(new String(outputString));
   }
 
   @Test
   public void testCreateErrorRuntimeFunction() {
     // handler is deprecated parameter
     try {
-      Object result = this.hCloudProvider
-          .CreateFunction(testFuncName, testCodeURI, testRuntime + "1", "");
+      this.hCloudProvider
+          .CreateFunction(testFuncName, testCodeURI, testRuntime + "1");
     } catch (RuntimeEnvironmentException e) {
       Assert.assertEquals(1, 1);
       return;
@@ -72,7 +70,7 @@ public class HCloudWithWorkerTest {
 
   @Test
   public void testDeleteFunction() {
-    this.hCloudProvider.CreateFunction(testFuncName, testCodeURI, testRuntime + "1", "");
+    this.hCloudProvider.CreateFunction(testFuncName, testCodeURI, testRuntime + "1");
     this.hCloudProvider.DeleteFunction(testFuncName);
   }
 

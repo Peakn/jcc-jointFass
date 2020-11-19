@@ -110,11 +110,10 @@ public class HCloudTest {
 
   @org.junit.jupiter.api.Test
   public void testCreateFunction() {
-    // handler is deprecated parameter
-    Object result = this.hCloudProvider.CreateFunction(testFuncName, testCodeURI, testRuntime, "");
-    Assert.assertNull(result);
+    // handler is deprecated paramete
+    this.hCloudProvider.CreateFunction(testFuncName, testCodeURI, testRuntime);
     try {
-      this.hCloudProvider.CreateFunction(testFuncName, testCodeURI, testRuntime, "");
+      this.hCloudProvider.CreateFunction(testFuncName, testCodeURI, testRuntime);
     } catch (CreateException e) {
       Assert.assertEquals(1, 1);
       return;
@@ -126,8 +125,8 @@ public class HCloudTest {
   public void testCreateErrorRuntimeFunction() {
     // handler is deprecated parameter
     try {
-      Object result = this.hCloudProvider
-          .CreateFunction(testFuncName, testCodeURI, testRuntime + "1", "");
+      this.hCloudProvider
+          .CreateFunction(testFuncName, testCodeURI, testRuntime + "1");
     } catch (RuntimeEnvironmentException e) {
       Assert.assertEquals(1, 1);
       return;
@@ -137,7 +136,7 @@ public class HCloudTest {
 
   @Test
   public void testDeleteFunction() {
-    this.hCloudProvider.CreateFunction(testFuncName, testCodeURI, testRuntime + "1", "");
+    this.hCloudProvider.CreateFunction(testFuncName, testCodeURI, testRuntime + "1");
     this.hCloudProvider.DeleteFunction(testFuncName);
   }
 

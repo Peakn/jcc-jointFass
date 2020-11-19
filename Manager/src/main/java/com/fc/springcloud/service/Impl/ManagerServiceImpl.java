@@ -17,47 +17,46 @@ public class ManagerServiceImpl implements ManagerService {
   @Autowired
   private ProviderBuilder builder;
 
-  public Object CreateFunction(String functionName, String codeURI, String runTimeEnvir,
-      String handler) throws IOException {
+  public void CreateFunction(String functionName, String codeURI, String runTimeEnvir) throws IOException {
     try {
       builder.Build(ProviderName.HCLOUD)
-          .CreateFunction(functionName, codeURI, runTimeEnvir, handler);
+          .CreateFunction(functionName, codeURI, runTimeEnvir);
     } catch (Exception e) {
-      return "Create function to HCloud error";
+        logger.info("Create function to HCloud error");
+        throw e;
     }
 
     try {
       builder.Build(ProviderName.ALICLOUD)
-          .CreateFunction(functionName, codeURI, runTimeEnvir, handler);
+          .CreateFunction(functionName, codeURI, runTimeEnvir);
     } catch (Exception e) {
-      return "Create function to AliCloud error";
+      logger.info("Create function to AliCloud error");
+      throw e;
     }
-    return null;
   }
 
-  public Object InvokeFunction(String functionName, String jsonObject) {
+  public String InvokeFunction(String functionName, String jsonString) {
     Object retVal;
     try {
-      retVal = builder.Build(ProviderName.HCLOUD).InvokeFunction(functionName, jsonObject);
-      return retVal;
+      retVal = builder.Build(ProviderName.HCLOUD).InvokeFunction(functionName, jsonString);
+      return (String) retVal;
     } catch (Exception e) {
       logger.warn(e.getMessage());
-      retVal = builder.Build(ProviderName.ALICLOUD).InvokeFunction(functionName, jsonObject);
-      return retVal;
+      retVal = builder.Build(ProviderName.ALICLOUD).InvokeFunction(functionName, jsonString);
+      return (String) retVal;
     }
   }
 
-  public Object UpdateFunction(String functionName, String codeDir, String runTimeEnvir,
-      String handler) throws IOException {
-    return builder.Build(ProviderName.ALICLOUD)
-        .UpdateFunction(functionName, codeDir, runTimeEnvir, handler);
+  public void UpdateFunction(String functionName, String codeDir, String runTimeEnvir) throws IOException {
+      builder.Build(ProviderName.ALICLOUD)
+        .UpdateFunction(functionName, codeDir, runTimeEnvir);
   }
 
   public Object ListFunction() {
     return builder.Build(ProviderName.ALICLOUD).ListFunction();
   }
 
-  public Object DeleteFunction(String functionName) {
-    return builder.Build(ProviderName.ALICLOUD).DeleteFunction(functionName);
+  public void DeleteFunction(String functionName) {
+      builder.Build(ProviderName.ALICLOUD).DeleteFunction(functionName);
   }
 }

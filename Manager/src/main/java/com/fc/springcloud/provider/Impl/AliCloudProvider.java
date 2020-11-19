@@ -42,15 +42,19 @@ public class AliCloudProvider implements PlatformProvider {
     private String role;
 
     //Create Service
-    public Object CreateService(String serviceName){
+    public void CreateService(String serviceName){
         //Create Service
         CreateServiceRequest csReq = new CreateServiceRequest();
         csReq.setServiceName(serviceName);
         csReq.setDescription("The service aims at jointFaas.");
         csReq.setRole(role);
-        CreateServiceResponse csResp = fcClient.createService(csReq);
-        logger.info("Created service, request ID " + csResp.getRequestId());
-        return csResp;
+        try{
+            CreateServiceResponse csResp = fcClient.createService(csReq);
+            logger.info("Created service, request ID " + csResp.getRequestId());
+        } catch (Exception e) {
+            logger.warn("alicloud create service error: " + e.getMessage());
+            throw e;
+        }
     }
 
     private byte[] prepareCodeZip(String codeURI, String runtime){
@@ -70,7 +74,7 @@ public class AliCloudProvider implements PlatformProvider {
     }
 
     @Override
-    public Object CreateFunction(String functionName, String codeURI, String runTimeEnvir, String handler) throws IOException {
+    public void CreateFunction(String functionName, String codeURI, String runTimeEnvir) throws IOException {
         // Create a function
         CreateFunctionRequest cfReq = new CreateFunctionRequest(SERVICE_NAME);
         cfReq.setFunctionName(functionName);
@@ -88,44 +92,42 @@ public class AliCloudProvider implements PlatformProvider {
             CreateFunctionResponse cfResp = fcClient.createFunction(cfReq);
             logger.info("Created function, request ID " + cfResp.getRequestId());
             logger.info("Create function at time: " + cfResp.getCreatedTime());
-            return cfResp;
         }
         catch (ClientException e){
             if(e.getErrorCode().equals("ServerNotFound")){
                 this.CreateService(SERVICE_NAME);
-                this.CreateFunction(functionName, codeURI, runTimeEnvir, handler);
-                logger.info("The Service not exist.we have recreate service and function");
+                logger.info("The Service not exist.we have recreated service and function");
+                CreateFunctionResponse cfResp = fcClient.createFunction(cfReq);
             }
             else if(e.getErrorCode().equals("FunctionAlreadyExists")){
-                this.UpdateFunction(functionName, codeURI, runTimeEnvir, handler);
+                this.UpdateFunction(functionName, codeURI, runTimeEnvir);
                 logger.info("The function has existed, and has been updated.");
             }
             else {
                 logger.info("The function create fail.=, message: " + e.getMessage() + "\n" + e.getErrorMessage() + "\n" + e.getErrorCode());
             }
-            return e;
         }
     }
 
     @Override
-    public Object InvokeFunction(String functionName, String jsonObject) {
+    public String InvokeFunction(String functionName, String jsonString) {
 
         InvokeFunctionRequest invkReq = new InvokeFunctionRequest(SERVICE_NAME, functionName);
 
         //设置参数
 //        String payload = jsonObject.toJSONString();
-        invkReq.setPayload(jsonObject.getBytes());
+        invkReq.setPayload(jsonString.getBytes());
 
         InvokeFunctionResponse invkResp = fcClient.invokeFunction(invkReq);
         logger.info("Function invoke success, requestedId: " + invkResp.getRequestId());
         logger.info("Run result：" + new String(invkResp.getContent()));
         String result = "Function invoke success, requestedId: " + invkResp.getRequestId() + ".Run result：" +  new String(invkResp.getContent());
         logger.info(result);
-        return invkResp;
+        return new String(invkResp.getContent());
     }
 
     @Override
-    public Object UpdateFunction(String functionName, String codeURI, String runTimeEnvir, String handler) throws IOException {
+    public void UpdateFunction(String functionName, String codeURI, String runTimeEnvir) throws IOException {
         UpdateFunctionRequest ufReq = new UpdateFunctionRequest(SERVICE_NAME, functionName);
         ufReq.setDescription("Update Function");
 
@@ -140,7 +142,6 @@ public class AliCloudProvider implements PlatformProvider {
         try {
             UpdateFunctionResponse ufResp = fcClient.updateFunction(ufReq);
             logger.info("Update function configurations and code success, the request id:" + ufResp.getFunctionId());
-            return ufResp;
         }
         catch (ClientException e){
             if(e.getErrorCode().equals("FunctionNotFound")) {
@@ -148,17 +149,16 @@ public class AliCloudProvider implements PlatformProvider {
             }
             else
                 logger.info("Function update fail." + e.getErrorCode());
-            return e;
+            throw e;
         }
     }
 
     @Override
-    public Object DeleteFunction(String functionName) {
+    public void DeleteFunction(String functionName) {
         DeleteFunctionRequest dfRep = new DeleteFunctionRequest(SERVICE_NAME, functionName);
         try {
             DeleteFunctionResponse dfResp = fcClient.deleteFunction(dfRep);
             logger.info("Function Delete Success.Delete function success, the requested id: " + dfResp.getRequestId());
-            return dfResp;
         } catch (ClientException e) {
             if(e.getErrorCode().equals("FunctionNotFound")){
                 logger.info("Function Delete Fail.This function not exist, please check functionName");
@@ -166,7 +166,7 @@ public class AliCloudProvider implements PlatformProvider {
             else {
                 e.printStackTrace();
             }
-            return e;
+            throw e;
         }
     }
 

@@ -29,12 +29,12 @@ import java.nio.file.Files;
 
     @Test
     public void CreateFunctionTest() throws IOException {
-        aliCloudProvider.CreateFunction("TestFunction", "http://106.15.225.249:8080/index.zip", "python3", "");
+        aliCloudProvider.CreateFunction("TestFunction1", "http://106.15.225.249:8080/index.zip", "python3");
     }
 
     @Test
     public void InvokeFunctionTest(){
-        aliCloudProvider.InvokeFunction("TestFunction", "{}");
+        aliCloudProvider.InvokeFunction("TestFunction1", "{\"a\": \"b\"}");
     }
 
     @Test

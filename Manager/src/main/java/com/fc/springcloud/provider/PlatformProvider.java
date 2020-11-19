@@ -10,16 +10,22 @@ import java.io.IOException;
 public interface PlatformProvider {
     // define other function here like createFunction
     //createService
-    // todo createService is AliProvider logic, implement the function into AliProvider and delete the interface.
-    public Object CreateService(String serviceName);
+    // createService is AliProvider logic, implement the function into AliProvider and delete the interface.
+    // public Object CreateService(String serviceName);
+
     // create Function
-    public Object CreateFunction(String functionName, String codeURI, String runTimeEnvir, String handler) throws IOException;
+    public void CreateFunction(String functionName, String codeURI, String runTimeEnvir) throws IOException;
+
     // invoke function
-    public Object InvokeFunction(String functionName, String jsonObject);
+    public String InvokeFunction(String functionName, String jsonString);
+
     //update function
-    public Object UpdateFunction(String functionName,String codeDir, String runTimeEnvir, String handler) throws IOException;
+    @Deprecated
+    public void UpdateFunction(String functionName,String codeDir, String runTimeEnvir) throws IOException;
+
     //delete function
-    public Object DeleteFunction(String functionName);
+    public void DeleteFunction(String functionName);
+
     //list
     // todo thinking about this state should read from database not provider
     @Deprecated
