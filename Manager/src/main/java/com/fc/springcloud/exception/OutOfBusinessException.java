@@ -9,12 +9,6 @@ public class OutOfBusinessException extends RuntimeException {
 
     private String msg;
 
-
-    public OutOfBusinessException(String msg) {
-        super(msg);
-        this.msg = msg;
-    }
-
     public OutOfBusinessException(String msg, Throwable e) {
         super(msg, e);
         this.msg = msg;

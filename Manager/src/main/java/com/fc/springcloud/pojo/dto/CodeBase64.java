@@ -1,10 +1,10 @@
 package com.fc.springcloud.pojo.dto;
 
-import javax.validation.constraints.NotEmpty;
+import javax.validation.constraints.NotBlank;
 import java.io.Serializable;
 
 public class CodeBase64 implements Serializable {
-    @NotEmpty(message = "zipFile cannot empty")
+    @NotBlank(message = "zipFile cannot empty")
     private String zipFile;
 
     public String getZipFile() {

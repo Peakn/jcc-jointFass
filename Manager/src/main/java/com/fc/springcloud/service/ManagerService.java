@@ -1,10 +1,5 @@
 package com.fc.springcloud.service;
 
-import com.alibaba.fastjson.JSONObject;
-import com.aliyuncs.fc.client.FunctionComputeClient;
-import com.fc.springcloud.common.CommonResult;
-import org.hibernate.validator.constraints.time.DurationMax;
-
 import java.io.IOException;
 
 public interface ManagerService {

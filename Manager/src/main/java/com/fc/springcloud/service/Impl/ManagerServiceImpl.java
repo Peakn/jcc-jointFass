@@ -3,11 +3,12 @@ package com.fc.springcloud.service.Impl;
 import com.fc.springcloud.provider.ProviderBuilder;
 import com.fc.springcloud.provider.ProviderName;
 import com.fc.springcloud.service.ManagerService;
-import java.io.IOException;
 import org.apache.juli.logging.Log;
 import org.apache.juli.logging.LogFactory;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
+
+import java.io.IOException;
 
 @Service
 public class ManagerServiceImpl implements ManagerService {
@@ -58,5 +59,6 @@ public class ManagerServiceImpl implements ManagerService {
 
   public void DeleteFunction(String functionName) {
       builder.Build(ProviderName.ALICLOUD).DeleteFunction(functionName);
+      builder.Build(ProviderName.HCLOUD).DeleteFunction(functionName);
   }
 }

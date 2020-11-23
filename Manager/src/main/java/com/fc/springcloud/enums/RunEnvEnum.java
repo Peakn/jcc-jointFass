@@ -18,11 +18,11 @@ public enum RunEnvEnum implements BaseEnum {
     /**
      * nodejs环境
      */
-    nodejs(3, "nodejs"),
+    nodejs(2, "nodejs"),
     /**
      * golang环境
      */
-    golang(4, "python");
+    golang(3, "python");
 
     private final Integer value;
 

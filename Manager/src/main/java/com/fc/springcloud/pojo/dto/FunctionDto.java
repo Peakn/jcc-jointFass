@@ -1,11 +1,13 @@
 package com.fc.springcloud.pojo.dto;
 
 
+import com.fc.springcloud.annotation.ValueOfEnum;
 import com.fc.springcloud.enums.RunEnvEnum;
 import com.fc.springcloud.pojo.vo.AbstractVoEntity;
 
+import javax.validation.Valid;
 import javax.validation.constraints.Min;
-import javax.validation.constraints.NotEmpty;
+import javax.validation.constraints.NotBlank;
 import javax.validation.constraints.NotNull;
 
 /**
@@ -18,7 +20,7 @@ public class FunctionDto extends AbstractVoEntity {
     /**
      * 函数名称
      */
-    @NotEmpty(message = "functionName can not be empty")
+    @NotBlank(message = "functionName can not be empty")
     private String functionName;
 
     /**
@@ -50,8 +52,9 @@ public class FunctionDto extends AbstractVoEntity {
     /**
      * 函数运行环境（nodejs、python、java、golang）
      */
-    @NotNull(message = "Please select the container operating environment")
-    private RunEnvEnum runEnv;
+    @NotBlank(message = "Container environment is mandatory")
+    @ValueOfEnum(enumClass = RunEnvEnum.class, message = "The container operating environment value is incorrect")
+    private String runEnv;
 
     /**
      * 所在服务
@@ -85,9 +88,10 @@ public class FunctionDto extends AbstractVoEntity {
     private Long codeSize;
 
     /**
-     * @return base64编码的文件
+     * base64编码的文件
      */
-    @NotNull(message = "")
+    @Valid
+    @NotNull(message = "File is mandatory")
     private CodeBase64 code;
 
     public String getFunctionName() {
@@ -138,11 +142,11 @@ public class FunctionDto extends AbstractVoEntity {
         this.regionId = regionId;
     }
 
-    public RunEnvEnum getRunEnv() {
+    public String getRunEnv() {
         return runEnv;
     }
 
-    public void setRunEnv(RunEnvEnum runEnv) {
+    public void setRunEnv(String runEnv) {
         this.runEnv = runEnv;
     }
 

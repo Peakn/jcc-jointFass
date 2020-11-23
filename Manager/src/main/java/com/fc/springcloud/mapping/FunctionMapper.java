@@ -30,4 +30,7 @@ public interface FunctionMapper {
     int deleteFunctionByFunctionId(String functionId);
 
     FunctionDo selectByFunctionId(String functionId);
+
+    Long existFunctionByFunctionName(String functionName);
+
 }

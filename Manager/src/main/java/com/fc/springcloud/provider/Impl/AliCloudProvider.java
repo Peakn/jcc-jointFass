@@ -1,5 +1,6 @@
 package com.fc.springcloud.provider.Impl;
 
+import cn.hutool.core.io.FileUtil;
 import com.aliyuncs.fc.client.FunctionComputeClient;
 import com.aliyuncs.fc.exceptions.ClientException;
 import com.aliyuncs.fc.model.Code;
@@ -13,8 +14,8 @@ import org.apache.commons.io.FileUtils;
 import org.apache.juli.logging.Log;
 import org.apache.juli.logging.LogFactory;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.core.io.ClassPathResource;
 import org.springframework.stereotype.Component;
-import org.springframework.util.ResourceUtils;
 
 import java.io.File;
 import java.io.IOException;
@@ -38,13 +39,13 @@ public class AliCloudProvider implements PlatformProvider {
     private String role;
 
     //Create Service
-    public void CreateService(String serviceName){
+    public void CreateService(String serviceName) {
         //Create Service
         CreateServiceRequest csReq = new CreateServiceRequest();
         csReq.setServiceName(serviceName);
         csReq.setDescription("The service aims at jointFaas.");
         csReq.setRole(role);
-        try{
+        try {
             CreateServiceResponse csResp = fcClient.createService(csReq);
             logger.info("Created service, request ID " + csResp.getRequestId());
         } catch (Exception e) {
@@ -56,12 +57,19 @@ public class AliCloudProvider implements PlatformProvider {
     private byte[] prepareCodeZip(String codeURI, String runtime) throws IOException {
         File[] addFiles = new File[1];
 
-        File tmpFile = File.createTempFile("tmpFunctionFile",".zip");
+        File tmpFile = File.createTempFile("tmpFunctionFile", ".zip");
         FileUtils.copyURLToFile(new URL(codeURI), tmpFile);
-        if (runtime == "python3")
+        String toFilePath = null;
+        if ("python3".equals(runtime)) {
             //append alicloud specific entrypoint into the zipfile
-            addFiles[0] = ResourceUtils.getFile("classpath:static/aliCloud/python3/jointfaas.py");
+            ClassPathResource resource = new ClassPathResource("static/aliCloud/python3/jointfaas.py");
+            toFilePath = "jointfaas.py";
+            File inuModel = new File(toFilePath);
+            FileUtils.copyToFile(resource.getInputStream(), inuModel);
+            addFiles[0] = inuModel;
+        }
         ZipUtil.addFilesToExistingZip(tmpFile, addFiles);
+        FileUtil.del(toFilePath);
         return Files.readAllBytes(Paths.get(tmpFile.getPath()));
     }
 
@@ -84,18 +92,15 @@ public class AliCloudProvider implements PlatformProvider {
             CreateFunctionResponse cfResp = fcClient.createFunction(cfReq);
             logger.info("Created function, request ID " + cfResp.getRequestId());
             logger.info("Create function at time: " + cfResp.getCreatedTime());
-        }
-        catch (ClientException e){
-            if(e.getErrorCode().equals("ServerNotFound")){
+        } catch (ClientException e) {
+            if (e.getErrorCode().equals("ServerNotFound")) {
                 this.CreateService(SERVICE_NAME);
                 logger.info("The Service not exist.we have recreated service and function");
                 CreateFunctionResponse cfResp = fcClient.createFunction(cfReq);
-            }
-            else if(e.getErrorCode().equals("FunctionAlreadyExists")){
+            } else if (e.getErrorCode().equals("FunctionAlreadyExists")) {
                 this.UpdateFunction(functionName, codeURI, runTimeEnvir);
                 logger.info("The function has existed, and has been updated.");
-            }
-            else {
+            } else {
                 logger.info("The function create fail.=, message: " + e.getMessage() + "\n" + e.getErrorMessage() + "\n" + e.getErrorCode());
             }
         }
@@ -113,7 +118,7 @@ public class AliCloudProvider implements PlatformProvider {
         InvokeFunctionResponse invkResp = fcClient.invokeFunction(invkReq);
         logger.info("Function invoke success, requestedId: " + invkResp.getRequestId());
         logger.info("Run result：" + new String(invkResp.getContent()));
-        String result = "Function invoke success, requestedId: " + invkResp.getRequestId() + ".Run result：" +  new String(invkResp.getContent());
+        String result = "Function invoke success, requestedId: " + invkResp.getRequestId() + ".Run result：" + new String(invkResp.getContent());
         logger.info(result);
         return new String(invkResp.getContent());
     }
@@ -134,13 +139,12 @@ public class AliCloudProvider implements PlatformProvider {
         try {
             UpdateFunctionResponse ufResp = fcClient.updateFunction(ufReq);
             logger.info("Update function configurations and code success, the request id:" + ufResp.getFunctionId());
-        }
-        catch (ClientException e){
-            if(e.getErrorCode().equals("FunctionNotFound")) {
+        } catch (ClientException e) {
+            if (e.getErrorCode().equals("FunctionNotFound")) {
                 logger.info("Function updateFail.This function not exists, please check functionName or create.");
-            }
-            else
+            } else {
                 logger.info("Function update fail." + e.getErrorCode());
+            }
             throw e;
         }
     }
@@ -152,10 +156,9 @@ public class AliCloudProvider implements PlatformProvider {
             DeleteFunctionResponse dfResp = fcClient.deleteFunction(dfRep);
             logger.info("Function Delete Success.Delete function success, the requested id: " + dfResp.getRequestId());
         } catch (ClientException e) {
-            if(e.getErrorCode().equals("FunctionNotFound")){
+            if (e.getErrorCode().equals("FunctionNotFound")) {
                 logger.info("Function Delete Fail.This function not exist, please check functionName");
-            }
-            else {
+            } else {
                 e.printStackTrace();
             }
             throw e;

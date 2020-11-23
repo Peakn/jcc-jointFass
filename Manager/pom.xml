@@ -38,7 +38,28 @@
                     </execution>
                 </executions>
             </plugin>
+            <plugin>
+                <groupId>org.springframework.boot</groupId>
+                <artifactId>spring-boot-maven-plugin</artifactId>
+                <executions>
+                    <execution>
+                        <id>repackage</id>
+                        <goals>
+                            <goal>repackage</goal>
+                        </goals>
+                    </execution>
+                </executions>
+                <configuration>
+                    <mainClass>com.fc.springcloud.JointFaasApplicationMain</mainClass>
+                </configuration>
+            </plugin>
         </plugins>
+        <resources>
+            <resource>
+                <directory>src/main/resources</directory>
+                <filtering>true</filtering>
+            </resource>
+        </resources>
     </build>
     <parent>
         <groupId>com.jcc.springcloud</groupId>
@@ -46,6 +67,7 @@
         <version>1.0-SNAPSHOT</version>
     </parent>
     <artifactId>Manager</artifactId>
+    <name>jcc-jointFaas-manager</name>
 
     <properties>
         <aliyun-java-sdk-fc.version>1.8.11</aliyun-java-sdk-fc.version>

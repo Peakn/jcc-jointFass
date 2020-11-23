@@ -1,7 +1,6 @@
 package com.fc.springcloud.exception;
 
-import com.fc.springcloud.common.CommonResult;
-import com.fc.springcloud.enums.ResultCode;
+import com.fc.springcloud.common.Result;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Value;
@@ -15,6 +14,7 @@ import org.springframework.web.bind.MethodArgumentNotValidException;
 import org.springframework.web.bind.annotation.ExceptionHandler;
 import org.springframework.web.bind.annotation.ResponseStatus;
 import org.springframework.web.bind.annotation.RestControllerAdvice;
+import org.springframework.web.context.request.WebRequest;
 import org.springframework.web.method.annotation.MethodArgumentTypeMismatchException;
 
 import javax.validation.ConstraintViolationException;
@@ -28,40 +28,49 @@ import java.sql.SQLException;
  * @author meng
  */
 @RestControllerAdvice
-public class GenericException {
+public class ResponseResultBodyAdvice<T> {
+
 
     @Value("${generic.exception.debug-mode:true}")
     private boolean genericExceptionDebugMode;
 
-    private static final Logger logger = LoggerFactory.getLogger(GenericException.class);
+    private static final Logger logger = LoggerFactory.getLogger(ResponseResultBodyAdvice.class);
 
     /**
      * 统一异常处理
      *
+     * @param e exception
      * @return
      */
     @ExceptionHandler({Exception.class})
-    public ResponseEntity<CommonResult> handException(Exception e) {
+    public ResponseEntity<Result<T>> handException(Exception e) {
         if (genericExceptionDebugMode) {
             logger.error("Catch Exception：", e);
         }
         //未捕捉的异常导致的错误
-        return ResponseEntity.ok().body(new CommonResult(ResultCode.INTERNAL_SERVER_ERROR.getCode(), "服务器异常"));
+        return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR.value()).body(Result.failure(HttpStatus.INTERNAL_SERVER_ERROR.value(), e.getMessage()));
     }
 
     /**
      * 捕捉参数校验异常
      *
-     * @param e
+     * @param e constraintViolationException
      * @return
      */
     @ExceptionHandler(ConstraintViolationException.class)
-    public ResponseEntity<CommonResult> equals(ConstraintViolationException e) {
+    public ResponseEntity<Result<T>> constraintViolationException(ConstraintViolationException e) {
+        String msg;
         if (genericExceptionDebugMode) {
             logger.error("catch ConstraintViolationException：", e);
-
         }
-        return ResponseEntity.ok().body(new CommonResult(ResultCode.BAD_REQUEST.getCode(), e.getMessage()));
+        msg = e.getMessage();
+        if (msg != null) {
+            int lastIndex = msg.lastIndexOf(':');
+            if (lastIndex >= 0) {
+                msg = msg.substring(lastIndex + 1).trim();
+            }
+        }
+        return ResponseEntity.status(HttpStatus.BAD_REQUEST.value()).body(Result.failure(HttpStatus.BAD_REQUEST.value(), msg));
     }
 
     /**
@@ -71,12 +80,11 @@ public class GenericException {
      * @return
      */
     @ExceptionHandler(OutOfBusinessException.class)
-    public ResponseEntity<CommonResult> equals(OutOfBusinessException e) {
+    public ResponseEntity<Object> equals(OutOfBusinessException e, WebRequest request) {
         if (genericExceptionDebugMode) {
             logger.error("catch OutOfBusinessException：", e);
         }
-        ResponseEntity<CommonResult> body = ResponseEntity.status(e.getCode()).body(new CommonResult(e.getCode(), e.getMessage()));
-        return body;
+        return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR.value()).body(Result.failure(HttpStatus.INTERNAL_SERVER_ERROR.value(), e.getMessage()));
     }
 
     /**
@@ -85,11 +93,11 @@ public class GenericException {
      * @return
      */
     @ExceptionHandler({NullPointerException.class})
-    public ResponseEntity<CommonResult> handException(NullPointerException e) {
+    public ResponseEntity<Object> handException(NullPointerException e) {
         if (genericExceptionDebugMode) {
             logger.error("Catch NullPointerException：", e);
         }
-        return ResponseEntity.ok().body(new CommonResult(ResultCode.INTERNAL_SERVER_ERROR.getCode(), "数据异常"));
+        return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR.value()).body(Result.failure(HttpStatus.INTERNAL_SERVER_ERROR.value(), e.getMessage()));
     }
 
     /**
@@ -99,11 +107,11 @@ public class GenericException {
      * @return
      */
     @ExceptionHandler({ClassCastException.class})
-    public ResponseEntity<CommonResult> handException(ClassCastException e) {
+    public ResponseEntity<Object> handException(ClassCastException e) {
         if (genericExceptionDebugMode) {
             logger.error("Catch ClassCastException：", e);
         }
-        return ResponseEntity.ok().body(new CommonResult(ResultCode.INTERNAL_SERVER_ERROR.getCode(), "格式转换错误"));
+        return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR.value()).body(Result.failure(HttpStatus.INTERNAL_SERVER_ERROR.value(), e.getMessage()));
     }
 
     /**
@@ -113,11 +121,11 @@ public class GenericException {
      * @return
      */
     @ExceptionHandler({FileNotFoundException.class})
-    public ResponseEntity<CommonResult> handException(FileNotFoundException e) {
+    public ResponseEntity<Object> handException(FileNotFoundException e) {
         if (genericExceptionDebugMode) {
             logger.error("Catch FileNotFoundException：", e);
         }
-        return ResponseEntity.ok().body(new CommonResult(HttpStatus.NOT_FOUND.value(), "文件未找到"));
+        return ResponseEntity.status(HttpStatus.NOT_FOUND.value()).body(Result.failure(HttpStatus.NOT_FOUND.value(), e.getMessage()));
     }
 
     /**
@@ -127,11 +135,11 @@ public class GenericException {
      * @return
      */
     @ExceptionHandler({SQLException.class})
-    public ResponseEntity<CommonResult> handException(SQLException e) {
+    public ResponseEntity<Object> handException(SQLException e) {
         if (genericExceptionDebugMode) {
             logger.error("Catch SQLException：", e);
         }
-        return ResponseEntity.ok().body(new CommonResult(HttpStatus.INTERNAL_SERVER_ERROR.value(), "数据库异常"));
+        return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR.value()).body(Result.failure(HttpStatus.INTERNAL_SERVER_ERROR.value(), e.getMessage()));
     }
 
     /**
@@ -141,11 +149,11 @@ public class GenericException {
      * @return
      */
     @ExceptionHandler({MethodArgumentTypeMismatchException.class})
-    public ResponseEntity handException(MethodArgumentTypeMismatchException e) {
+    public ResponseEntity<Object> handException(MethodArgumentTypeMismatchException e) {
         if (genericExceptionDebugMode) {
             logger.error("Catch MethodArgumentTypeMismatchException：", e);
         }
-        return ResponseEntity.ok().body(new CommonResult(HttpStatus.INTERNAL_SERVER_ERROR.value(), "参数转换失败"));
+        return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR.value()).body(Result.failure(HttpStatus.INTERNAL_SERVER_ERROR.value(), e.getMessage()));
     }
 
     /**
@@ -155,19 +163,35 @@ public class GenericException {
      * @return
      */
     @ExceptionHandler({IllegalArgumentException.class})
-    public ResponseEntity<CommonResult> handException(IllegalArgumentException e) {
+    public ResponseEntity<Object> handException(IllegalArgumentException e) {
         if (genericExceptionDebugMode) {
             logger.error("Catch IllegalArgumentException：", e);
         }
-        return ResponseEntity.ok().body(new CommonResult(HttpStatus.BAD_REQUEST.value(), "非法参数"));
+        return ResponseEntity.status(HttpStatus.BAD_REQUEST.value()).body(Result.failure(HttpStatus.BAD_REQUEST.value(), e.getMessage()));
     }
 
     @ExceptionHandler({NotFoundException.class})
-    public ResponseEntity<CommonResult> handException(NotFoundException e) {
+    public ResponseEntity<Object> handException(NotFoundException e) {
         if (genericExceptionDebugMode) {
             logger.error("Catch NotFoundException：", e);
         }
-        return ResponseEntity.ok().body(new CommonResult(HttpStatus.NOT_FOUND.value(), "未找到资源"));
+        return ResponseEntity.status(HttpStatus.NOT_FOUND.value()).body(Result.failure(HttpStatus.NOT_FOUND.value(), e.getMessage()));
+    }
+
+    @ExceptionHandler({EntityNotFoundException.class})
+    public ResponseEntity<Object> handException(EntityNotFoundException e) {
+        if (genericExceptionDebugMode) {
+            logger.error("Catch EntityNotFoundException：", e);
+        }
+        return ResponseEntity.status(HttpStatus.NOT_FOUND.value()).body(Result.failure(HttpStatus.NOT_FOUND.value(), e.getMessage()));
+    }
+
+    @ExceptionHandler({EntityExistsException.class})
+    public ResponseEntity<Object> handException(EntityExistsException e) {
+        if (genericExceptionDebugMode) {
+            logger.error("Catch EntityExistsException：", e);
+        }
+        return ResponseEntity.status(HttpStatus.CONFLICT.value()).body(Result.failure(HttpStatus.CONFLICT.value(), e.getMessage()));
     }
 
     /**
@@ -182,7 +206,7 @@ public class GenericException {
     @ExceptionHandler(value = {BindException.class, ValidationException.class, MethodArgumentNotValidException.class})
     public ResponseEntity handleParameterVerificationException(Exception e) {
         if (genericExceptionDebugMode) {
-            logger.error(" handleParameterVerificationException has been invoked", e);
+            logger.error("HandleParameterVerificationException has been invoked", e);
         }
         String msg = null;
         /// BindException
@@ -209,10 +233,9 @@ public class GenericException {
                     msg = msg.substring(lastIndex + 1).trim();
                 }
             }
-            /// ValidationException 的其它子类异常
         } else {
-            msg = "处理参数时异常";
+            msg = "Exception when processing parameters";
         }
-        return ResponseEntity.ok().body(new CommonResult(ResultCode.BAD_REQUEST.getCode(), msg));
+        return ResponseEntity.status(HttpStatus.BAD_REQUEST).body(Result.failure(HttpStatus.BAD_REQUEST.value(), msg));
     }
 }

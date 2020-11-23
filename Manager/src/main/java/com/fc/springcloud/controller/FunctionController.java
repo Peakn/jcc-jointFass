@@ -1,8 +1,8 @@
 package com.fc.springcloud.controller;
 
-import com.fc.springcloud.common.CommonResult;
 import com.fc.springcloud.common.DataItem;
 import com.fc.springcloud.common.DataPage;
+import com.fc.springcloud.common.Result;
 import com.fc.springcloud.pojo.domain.FunctionDo;
 import com.fc.springcloud.pojo.query.FunctionQuery;
 import com.fc.springcloud.service.FunctionService;
@@ -25,7 +25,7 @@ public class FunctionController {
     @PostMapping(value = "save")
     public ResponseEntity SaveFunction(@RequestBody FunctionDo functionDo) {
         functionService.saveFunction(functionDo);
-        return ResponseEntity.ok().body(new CommonResult<>());
+        return ResponseEntity.ok().body(Result.success());
     }
 
     @PutMapping(value = "update")
@@ -36,18 +36,18 @@ public class FunctionController {
     @DeleteMapping(value = "delete/{id}")
     public ResponseEntity deleteFunction(@PathVariable Long id) {
         functionService.deleteFunction(id);
-        return ResponseEntity.ok().body(new CommonResult<>());
+        return ResponseEntity.ok().body(Result.success());
     }
 
     @DeleteMapping(value = "deleteByName")
     public ResponseEntity deleteFunctionByFunctionName(String functionName) {
         functionService.deleteFunctionByFunctionName(functionName);
-        return ResponseEntity.ok().body(new CommonResult<>());
+        return ResponseEntity.ok().body(Result.success());
     }
 
     @GetMapping(value = "functionName")
     public ResponseEntity getFunctionByFunctionName(String functionName) {
         functionService.getFunction(functionName);
-        return ResponseEntity.ok().body(new CommonResult<>());
+        return ResponseEntity.ok().body(Result.success());
     }
 }

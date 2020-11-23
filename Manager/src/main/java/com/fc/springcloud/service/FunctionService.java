@@ -6,9 +6,13 @@ import com.fc.springcloud.pojo.query.FunctionQuery;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
 import org.springframework.http.ResponseEntity;
+import org.springframework.validation.annotation.Validated;
 
+import javax.validation.Valid;
+
+@Validated
 public interface FunctionService {
-    int saveFunction(FunctionDo functionDo);
+    int saveFunction(@Valid FunctionDo functionDo);
 
     int uploadFunction(FunctionDo functionDo);
 
@@ -24,7 +28,7 @@ public interface FunctionService {
 
     void deleteFunctionByFunctionId(String functionId);
 
-    ResponseEntity updateFunction(FunctionDto functionDto);
+    ResponseEntity updateFunction(@Valid FunctionDto functionDto);
 
-    ResponseEntity creatFunction(FunctionDto functionDto);
+    ResponseEntity creatFunction(@Valid FunctionDto functionDto);
 }

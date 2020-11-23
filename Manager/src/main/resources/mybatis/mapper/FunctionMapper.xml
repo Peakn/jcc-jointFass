@@ -330,4 +330,9 @@
     from t_function
     where function_id = #{functionId,jdbcType=VARCHAR}
   </select>
+
+  <select id="existFunctionByFunctionName" resultType="java.lang.Long">
+    select id from t_function where function_name = #{functionName,jdbcType=VARCHAR}
+    LIMIT 1
+  </select>
 </mapper>

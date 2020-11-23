@@ -1,5 +1,6 @@
 package com.fc.springcloud.util;
 
+import com.fc.springcloud.exception.OutOfBusinessException;
 import com.google.common.base.Strings;
 import org.apache.commons.codec.binary.Base64;
 
@@ -24,7 +25,7 @@ public class FileBase64Util {
         try {
             Files.write(Paths.get(filePath), Base64.decodeBase64(base64.substring(base64.indexOf(",") + 1)), StandardOpenOption.CREATE);
         } catch (IOException e) {
-            e.printStackTrace();
+            throw new OutOfBusinessException("Failed to convert Base64 to file", e);
         }
         return Boolean.TRUE;
     }
@@ -41,7 +42,7 @@ public class FileBase64Util {
                 byte[] bytes = Files.readAllBytes(Paths.get(filePath));
                 return Base64.encodeBase64String(bytes);
             } catch (IOException e) {
-                e.printStackTrace();
+                throw new OutOfBusinessException("Failed to convert file to Base64", e);
             }
         }
         return null;
