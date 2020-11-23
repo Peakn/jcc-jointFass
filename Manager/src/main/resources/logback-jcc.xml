@@ -1,0 +1,53 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<configuration debug="false" scan="false" scanPeriod="30 seconds">
+	<property name="CONSOLE_LOG_PATTERN" value="%date{yyyy-MM-dd HH:mm:ss.SSS} [%-40.40thread] %-5level %-40.40logger{39} - %message%n"/>
+	<property name="FILE_LOG_PATTERN" value="%date{yyyy-MM-dd HH:mm:ss.SSS} [%-40.40thread] %-5level %-40.40logger{39} - %message%n"/>
+	<property name="LOG_FILE_PREFIX" value="jcc"/>
+	<include resource="org/springframework/boot/logging/logback/defaults.xml" />
+    <include resource="org/springframework/boot/logging/logback/console-appender.xml" />
+	
+	<appender name="FILE-ERROR" class="ch.qos.logback.core.rolling.RollingFileAppender">
+	  	<file>${LOG_PATH}/${LOG_FILE_PREFIX}-error.log</file>
+	    <rollingPolicy class="ch.qos.logback.core.rolling.FixedWindowRollingPolicy">
+	      	<fileNamePattern>${LOG_PATH}/${LOG_FILE_PREFIX}-error.%i.log</fileNamePattern>
+	      	<minIndex>1</minIndex>
+	      	<maxIndex>12</maxIndex>
+	    </rollingPolicy>
+	    <triggeringPolicy class="ch.qos.logback.core.rolling.SizeBasedTriggeringPolicy">
+	      	<maxFileSize>90MB</maxFileSize>
+	    </triggeringPolicy>
+	    <encoder charset="UTF-8">
+	      	<pattern>${FILE_LOG_PATTERN}</pattern>
+	    </encoder>
+	    <filter class="ch.qos.logback.classic.filter.LevelFilter">
+   	  		<level>ERROR</level>
+     		<onMatch>ACCEPT</onMatch>
+      		<onMismatch>DENY</onMismatch>
+    	</filter>
+  	</appender>
+
+	<appender name="FILE-ALL" class="ch.qos.logback.core.rolling.RollingFileAppender">
+	  	<file>${LOG_PATH}/${LOG_FILE_PREFIX}-all.log</file>
+	    <rollingPolicy class="ch.qos.logback.core.rolling.FixedWindowRollingPolicy">
+	      	<fileNamePattern>${LOG_PATH}/${LOG_FILE_PREFIX}-all.%i.log</fileNamePattern>
+	      	<minIndex>1</minIndex>
+	      	<maxIndex>12</maxIndex>
+	    </rollingPolicy>
+	    <triggeringPolicy class="ch.qos.logback.core.rolling.SizeBasedTriggeringPolicy">
+	      	<maxFileSize>90MB</maxFileSize>
+	    </triggeringPolicy>
+	    <encoder charset="UTF-8">
+	      	<pattern>${FILE_LOG_PATTERN}</pattern>
+	    </encoder>
+  	</appender>
+
+	<!--SQL日志级别-->
+	<logger name="com.fc.springcloud.mapping" level="DEBUG" />
+
+	<root level="INFO">
+		<appender-ref ref="CONSOLE" />
+		<appender-ref ref="FILE-ALL" />
+		<appender-ref ref="FILE-ERROR" />
+	</root>
+	
+</configuration>

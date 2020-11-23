@@ -38,8 +38,9 @@ pagehelper:
   params: count=countSql
 
 logging:
-  level:
-    com.fc.springcloud.mapping: debug
+  config: classpath:logback-jcc.xml
+  file:
+    path: logs/${project.name}-${project.version}
 File:
   base-dir: ./
 aliyun:
