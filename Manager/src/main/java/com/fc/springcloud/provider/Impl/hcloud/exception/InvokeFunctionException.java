@@ -1,4 +1,4 @@
-package com.fc.springcloud.provider.Impl.hcloudprovider.exception;
+package com.fc.springcloud.provider.Impl.hcloud.exception;
 
 public class InvokeFunctionException extends RuntimeException {
     public InvokeFunctionException(String message) {

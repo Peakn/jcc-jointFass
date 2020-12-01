@@ -1,4 +1,4 @@
-package com.fc.springcloud.provider.Impl.hcloudprovider.exception;
+package com.fc.springcloud.provider.Impl.hcloud.exception;
 
 import jointfaas.worker.InvokeResponse.Code;
 import lombok.Getter;

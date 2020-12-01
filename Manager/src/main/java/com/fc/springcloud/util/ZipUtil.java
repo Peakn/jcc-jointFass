@@ -1,9 +1,22 @@
 package com.fc.springcloud.util;
 
-import java.io.*;
+import java.io.File;
+import java.io.FileInputStream;
+import java.io.FileNotFoundException;
+import java.io.FileOutputStream;
+import java.io.IOException;
+import java.io.InputStream;
+import java.nio.file.Files;
+import java.nio.file.Path;
+import java.util.Arrays;
+import java.util.Enumeration;
+import java.util.Objects;
 import java.util.zip.ZipEntry;
+import java.util.zip.ZipException;
+import java.util.zip.ZipFile;
 import java.util.zip.ZipInputStream;
 import java.util.zip.ZipOutputStream;
+import org.apache.commons.io.FileUtils;
 import org.apache.juli.logging.Log;
 import org.apache.juli.logging.LogFactory;
 
@@ -107,5 +120,54 @@ public class ZipUtil {
     // Complete the ZIP file
     out.close();
     tempFile.delete();
+  }
+
+  public static File Merge(File resourceCode, File fileWrapper) throws IOException {
+    ZipFile wrapper = new ZipFile(fileWrapper);
+    ZipFile zipSource = new ZipFile(resourceCode);
+    File result = File.createTempFile(resourceCode.getName(), null);
+    ZipOutputStream out = new ZipOutputStream(new FileOutputStream(result));
+    Enumeration<? extends ZipEntry> wrapperEntries = wrapper.entries();
+    while(wrapperEntries.hasMoreElements()) {
+      ZipEntry entry = wrapperEntries.nextElement();
+      out.putNextEntry(new ZipEntry(entry.getName()));
+      int len;
+      byte[] buf = new byte[4096];
+      InputStream in = wrapper.getInputStream(entry);
+      while ((len = in.read(buf)) > 0) {
+        out.write(buf, 0, len);
+      }
+    }
+
+    Enumeration<? extends ZipEntry> entries = new ZipFile(resourceCode).entries();
+    while(entries.hasMoreElements()) {
+      // todo thinking about different version module conflict
+      ZipEntry entry = entries.nextElement();
+      try {
+        out.putNextEntry(new ZipEntry(entry.getName()));
+      } catch (ZipException e) {
+        continue;
+      }
+      int len;
+      byte[] buf = new byte[4096];
+      InputStream in = zipSource.getInputStream(entry);
+      while ((len = in.read(buf)) > 0) {
+        out.write(buf, 0, len);
+      }
+    }
+    out.close();
+    return result;
+  }
+
+
+  public static File Mergev2(File resourceCode, File fileWrapper) throws IOException {
+    File result = File.createTempFile(resourceCode.getName(), null);
+    FileUtils.copyFile(fileWrapper, result);
+    Path tempDirectory = Files.createTempDirectory(resourceCode.getName());
+    new net.lingala.zip4j.ZipFile(resourceCode).extractAll(tempDirectory.toString());
+    new net.lingala.zip4j.ZipFile(result).addFiles(Arrays.asList(
+        Objects.requireNonNull(tempDirectory.toFile().listFiles())));
+    tempDirectory.toFile().delete();
+    return result;
   }
 }

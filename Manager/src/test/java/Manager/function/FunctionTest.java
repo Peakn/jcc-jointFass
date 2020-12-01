@@ -6,7 +6,7 @@ import com.fc.springcloud.controller.FileController;
 import com.fc.springcloud.pojo.domain.FunctionDo;
 import com.fc.springcloud.pojo.dto.CodeBase64;
 import com.fc.springcloud.pojo.dto.FunctionDto;
-import com.fc.springcloud.provider.Impl.hcloudprovider.HCloudProvider;
+import com.fc.springcloud.provider.Impl.hcloud.HCloudProvider;
 import com.fc.springcloud.service.FunctionService;
 import com.fc.springcloud.service.ManagerService;
 import com.fc.springcloud.util.FileBase64Util;

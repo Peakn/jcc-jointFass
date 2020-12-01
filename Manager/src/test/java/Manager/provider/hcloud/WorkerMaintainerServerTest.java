@@ -3,9 +3,9 @@ package Manager.provider.hcloud;
 import static org.mockito.AdditionalAnswers.delegatesTo;
 import static org.mockito.Mockito.mock;
 
-import com.fc.springcloud.provider.Impl.hcloudprovider.Resource;
-import com.fc.springcloud.provider.Impl.hcloudprovider.Worker;
-import com.fc.springcloud.provider.Impl.hcloudprovider.WorkerMaintainerServer;
+import com.fc.springcloud.provider.Impl.hcloud.Resource;
+import com.fc.springcloud.provider.Impl.hcloud.Worker;
+import com.fc.springcloud.provider.Impl.hcloud.WorkerMaintainerServer;
 import io.grpc.ManagedChannel;
 import io.grpc.ManagedChannelBuilder;
 import io.grpc.Server;

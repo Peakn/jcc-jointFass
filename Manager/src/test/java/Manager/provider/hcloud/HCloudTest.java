@@ -4,9 +4,9 @@ package Manager.provider.hcloud;
 import static org.mockito.AdditionalAnswers.delegatesTo;
 import static org.mockito.Mockito.mock;
 
-import com.fc.springcloud.provider.Impl.hcloudprovider.HCloudProvider;
-import com.fc.springcloud.provider.Impl.hcloudprovider.exception.CreateException;
-import com.fc.springcloud.provider.Impl.hcloudprovider.exception.RuntimeEnvironmentException;
+import com.fc.springcloud.provider.Impl.hcloud.HCloudProvider;
+import com.fc.springcloud.provider.Impl.hcloud.exception.CreateException;
+import com.fc.springcloud.provider.Impl.hcloud.exception.RuntimeEnvironmentException;
 import io.grpc.ManagedChannel;
 import io.grpc.ManagedChannelBuilder;
 import io.grpc.Server;

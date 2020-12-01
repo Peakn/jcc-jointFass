@@ -1,4 +1,4 @@
-package com.fc.springcloud.provider.Impl.hcloudprovider;
+package com.fc.springcloud.provider.Impl.hcloud;
 
 public enum InvokeExceptionType {
   NO_SUCH_FUNCTION(1),

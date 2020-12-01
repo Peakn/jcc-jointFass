@@ -1,0 +1,35 @@
+syntax = "proto3";
+
+option go_package = "ipads.se.sjtu.edu.cn/mesh-control-plane/pkg/model";
+option java_package = "jointfaas.mesh.model";
+package mesh.model;
+
+
+message Info {
+  string url = 1;
+  string internalUrl = 2;
+  float price = 3;
+}
+
+enum Method { // most useful http method, PATCH and more is not necessary. Also you can add it very simple.
+  UNDEFINED = 0;
+  GET = 1;
+  POST = 2;
+  PUT = 3;
+  DELETE = 4;
+}
+
+message Function {
+  string name = 1;
+  string method = 2;
+  map<string, Info>  infos = 3;
+}
+
+message Step {
+  string functionName = 1;
+}
+
+message Application {
+  string name = 1;
+  repeated Step stepChains = 2;
+}

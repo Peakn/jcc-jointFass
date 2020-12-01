@@ -1,4 +1,4 @@
-package com.fc.springcloud.provider.Impl.hcloudprovider.exception;
+package com.fc.springcloud.provider.Impl.hcloud.exception;
 
 public class CreateException extends RuntimeException {
 

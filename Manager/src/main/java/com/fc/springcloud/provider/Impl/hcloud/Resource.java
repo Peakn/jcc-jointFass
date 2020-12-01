@@ -1,4 +1,4 @@
-package com.fc.springcloud.provider.Impl.hcloudprovider;
+package com.fc.springcloud.provider.Impl.hcloud;
 
 import lombok.AllArgsConstructor;
 import lombok.Data;

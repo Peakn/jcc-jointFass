@@ -1,0 +1,31 @@
+syntax = "proto3";
+
+option go_package = "ipads.se.sjtu.edu.cn/mesh-control-plane/pkg/discovery";
+option java_package = "jointfaas.mesh.discovery";
+package mesh.discovery;
+
+import "google/protobuf/any.proto";
+
+service DiscoveryServer {
+  rpc XDS(stream XDSRequest) returns (stream XDSResponse) {}
+}
+
+message XDSRequest {
+  Instance instance = 1;
+  string resourceType = 2;
+  repeated string resourcesName = 3;
+  string responseNonce = 4;
+}
+
+message XDSResponse {
+  repeated google.protobuf.Any resources = 1;
+  string responseNonce = 2;
+  string resourceType = 3;
+}
+
+message Instance {
+  string provider = 1;
+  string functionName = 2;
+  string applicationName = 3;
+  string url = 4;
+}

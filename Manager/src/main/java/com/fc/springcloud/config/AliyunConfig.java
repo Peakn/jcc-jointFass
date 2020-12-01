@@ -22,6 +22,9 @@ public class AliyunConfig {
     @Bean
     public FunctionComputeClient initialize(){
         FunctionComputeClient fcClient = new FunctionComputeClient(REGION, accountId, accessKey, accessSecretKey);
+        fcClient.getConfig().setConnectionRequestTimeoutMillis(400000);
+        fcClient.getConfig().setConnectTimeoutMillis(400000);
+        fcClient.getConfig().setReadTimeoutMillis(400000);
         return fcClient;
     }
 
