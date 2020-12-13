@@ -9,6 +9,7 @@ message Info {
   string url = 1;
   string internalUrl = 2;
   float price = 3;
+  repeated string instances = 5;
 }
 
 enum Method { // most useful http method, PATCH and more is not necessary. Also you can add it very simple.
@@ -23,6 +24,7 @@ message Function {
   string name = 1;
   string method = 2;
   map<string, Info>  infos = 3;
+  string belongTo = 4;
 }
 
 message Step {

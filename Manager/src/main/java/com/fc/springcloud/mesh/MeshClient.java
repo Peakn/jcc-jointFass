@@ -4,6 +4,9 @@ import com.alibaba.fastjson.JSONObject;
 import com.fc.springcloud.enums.RunEnvEnum;
 import com.fc.springcloud.mesh.exception.NotImplementedException;
 import com.fc.springcloud.util.ZipUtil;
+import io.grpc.ManagedChannel;
+import io.grpc.ManagedChannelBuilder;
+import io.grpc.stub.StreamObserver;
 import java.io.BufferedWriter;
 import java.io.File;
 import java.io.IOException;
@@ -11,6 +14,23 @@ import java.net.URL;
 import java.nio.file.Files;
 import java.nio.file.Paths;
 import java.util.Map;
+import java.util.concurrent.BlockingQueue;
+import java.util.concurrent.ExecutorService;
+import java.util.concurrent.Executors;
+import jointfaas.mesh.definition.Definition.CreateFunctionRequest;
+import jointfaas.mesh.definition.Definition.CreateFunctionResponse;
+import jointfaas.mesh.definition.Definition.DeleteFunctionRequest;
+import jointfaas.mesh.definition.Definition.FunctionSpec;
+import jointfaas.mesh.definition.Definition.StatusCode;
+import jointfaas.mesh.definition.Definition.UpdateFunctionRequest;
+import jointfaas.mesh.definition.Definition.UpdateFunctionResponse;
+import jointfaas.mesh.definition.DefinitionServerGrpc;
+import jointfaas.mesh.definition.DefinitionServerGrpc.DefinitionServerBlockingStub;
+import jointfaas.mesh.definition.DefinitionServerGrpc.DefinitionServerStub;
+import jointfaas.mesh.model.Model.Info;
+import jointfaas.mesh.model.Model.Method;
+import lombok.Setter;
+import lombok.SneakyThrows;
 import net.lingala.zip4j.ZipFile;
 import net.lingala.zip4j.model.ZipParameters;
 import org.apache.commons.io.FileUtils;
@@ -20,12 +40,18 @@ import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Component;
 
 @Component
+@Setter
 public class MeshClient {
 
   private static final Log logger = LogFactory.getLog(MeshClient.class);
 
+  private final ExecutorService functionInfoUpdate;
+
   @Value("${mesh.target}")
   String target;
+
+  @Value("${mesh.definition}")
+  String definition;
 
   @Value("${mesh.trace.host}")
   String traceHost;
@@ -33,8 +59,123 @@ public class MeshClient {
   @Value("${mesh.trace.port}")
   Integer tracePort;
 
-
   public MeshClient() {
+    functionInfoUpdate = Executors.newCachedThreadPool();
+  }
+
+  @Setter
+  static class UpdateFunctionClient implements StreamObserver<UpdateFunctionResponse> {
+
+    private Boolean stop;
+    private String functionName;
+    private String internalUrl;
+    private String url;
+    private Float price;
+    private Cluster cluster;
+    private BlockingQueue<Float> priceUpstream;
+    private BlockingQueue<Cluster> clusterUpstream;
+    private StreamObserver<UpdateFunctionRequest> updateFunctionRequestObserver;
+    private ExecutorService collectionThreads;
+
+    public UpdateFunctionClient(String functionName, String internalUrl, String url,
+        BlockingQueue<Float> priceUpstream, BlockingQueue<Cluster> clusterUpstream) {
+      this.functionName = functionName;
+      this.url = url;
+      this.internalUrl = internalUrl;
+      this.priceUpstream = priceUpstream;
+      this.clusterUpstream = clusterUpstream;
+      this.stop = false;
+      this.price = 0.0f;
+      this.collectionThreads = Executors.newFixedThreadPool(3);
+    }
+
+    public void start() {
+      // start info collection thread
+      if (priceUpstream != null) {
+        // start price collection
+        collectionThreads.execute(new Runnable() {
+          @SneakyThrows
+          @Override
+          public void run() {
+            do {
+              price = priceUpstream.take();
+            } while (!stop);
+          }
+        });
+      }
+
+      if (clusterUpstream != null) {
+        // start
+        collectionThreads.execute(new Runnable() {
+          @SneakyThrows
+          @Override
+          public void run() {
+            do {
+              cluster = clusterUpstream.take();
+            } while (!stop);
+          }
+        });
+      }
+      // todo add cron job to sync information to mesh center
+      collectionThreads.execute(new Runnable() {
+        @SneakyThrows
+        @Override
+        public void run() {
+          while (true) {
+            if (cluster != null) {
+              UpdateFunctionRequest req = UpdateFunctionRequest.newBuilder()
+                  .setFunctionSpec(FunctionSpec.newBuilder()
+                      .setName(functionName).
+                          setInfo(Info.newBuilder()
+                              .setInternalUrl(internalUrl)
+                              .setPrice(price)
+                              .setUrl(url)
+                              .addAllInstances(cluster.instances)
+                              .build())
+                      .setProvider(cluster.provider)
+                      .build())
+                  .build();
+              updateFunctionRequestObserver.onNext(req);
+            }
+            Thread.sleep(1000);
+          }
+        }
+      });
+    }
+
+    @SneakyThrows
+    @Override
+    public void onNext(UpdateFunctionResponse updateFunctionResponse) {
+    }
+
+    @Override
+    public void onError(Throwable throwable) {
+      logger.fatal(throwable);
+      this.onCompleted();
+      this.stop = true;
+    }
+
+    @Override
+    public void onCompleted() {
+    }
+  }
+
+  public void syncFunctionInfo(String functionName, String internalUrl, String url,
+      BlockingQueue<Float> priceUpstream, BlockingQueue<Cluster> clusterUpstream) {
+    functionInfoUpdate.execute(new Runnable() {
+      @Override
+      public void run() {
+        ManagedChannel channel = ManagedChannelBuilder.forTarget(definition).usePlaintext()
+            .build();
+        DefinitionServerStub client = DefinitionServerGrpc.newStub(channel);
+        UpdateFunctionClient ufc = new UpdateFunctionClient(functionName, internalUrl, url,
+            priceUpstream, clusterUpstream);
+        StreamObserver<UpdateFunctionRequest> updateFunctionRequestStreamObserver = client
+            .updateFunction(ufc);
+        ufc.setUpdateFunctionRequestObserver(updateFunctionRequestStreamObserver);
+        ufc.start();
+      }
+    });
   }
 
   public String injectInitializer() {
@@ -122,5 +263,33 @@ public class MeshClient {
     env.put("PROVIDER", provider);
     env.put("FUNC_NAME", functionName);
     env.put("POLICY", "simple"); // todo hard code
+  }
+
+  public void createFunctionInMesh(String name, String method) {
+    ManagedChannel channel = ManagedChannelBuilder.forTarget(definition).usePlaintext()
+        .build();
+    DefinitionServerBlockingStub client = DefinitionServerGrpc
+        .newBlockingStub(channel);
+    CreateFunctionResponse resp = client
+        .createFunction(CreateFunctionRequest.newBuilder()
+            .setName(name)
+            .setMethod(Method.valueOf(method))
+            .build());
+    if (!resp.getStatusCode().equals(StatusCode.OK)) {
+      channel.shutdown();
+      throw new RuntimeException(resp.getMsg());
+    }
+    channel.shutdown();
+  }
+
+  public void deleteFunctionInMesh(String name) {
+    ManagedChannel channel = ManagedChannelBuilder.forTarget(definition).usePlaintext()
+        .build();
+    DefinitionServerBlockingStub client = DefinitionServerGrpc
+        .newBlockingStub(channel);
+    client.deleteFunction(DeleteFunctionRequest.newBuilder()
+        .setName(name)
+        .build());
+    channel.shutdown();
   }
 }

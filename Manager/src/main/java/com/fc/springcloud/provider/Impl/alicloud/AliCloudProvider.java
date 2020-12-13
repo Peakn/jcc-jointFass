@@ -98,6 +98,14 @@ public class AliCloudProvider implements PlatformProvider {
     }
   }
 
+  private String parseInternalUrl(String serviceName,  String functionName) {
+    return "";
+  }
+
+  private String parseUrl(String serviceName,  String functionName) {
+    return "";
+  }
+
   private byte[] prepareCodeZip(String codeURL, String runtime) throws IOException {
     File[] addFiles = new File[1];
 
@@ -163,13 +171,14 @@ public class AliCloudProvider implements PlatformProvider {
                 + "\n" + e.getErrorCode());
       }
     }
+    // todo set the priceUpstream
+    meshInjector.syncFunctionInfo(functionName, parseInternalUrl(functionName, SERVICE_NAME), parseUrl(functionName, SERVICE_NAME), null, null);
   }
 
   @Override
   public String InvokeFunction(String functionName, String jsonString) {
 
     InvokeFunctionRequest invkReq = new InvokeFunctionRequest(SERVICE_NAME, functionName);
-
     //设置参数
 //        String payload = jsonObject.toJSONString();
     invkReq.setPayload(jsonString.getBytes());

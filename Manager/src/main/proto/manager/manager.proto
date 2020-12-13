@@ -6,6 +6,7 @@ package manager;
 
 service Manager {
     rpc Register(RegisterRequest) returns (RegisterResponse) {}
+    rpc Sync(stream SyncRequest) returns (stream SyncResponse) {}
 }
 
 message RegisterRequest {
@@ -20,4 +21,19 @@ message RegisterResponse {
     }
     Code code = 1;
     string msg = 2;
+}
+
+message SyncRequest {
+    string workerId = 1;
+    string functionName = 2;
+    string provider = 3;
+    repeated string instances = 4;
+}
+
+message SyncResponse {
+    enum Code {
+        OK = 0;
+        ERROR = 1;
+    }
+    Code code = 1;
 }

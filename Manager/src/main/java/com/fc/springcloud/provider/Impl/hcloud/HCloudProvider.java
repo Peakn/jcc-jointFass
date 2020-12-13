@@ -1,5 +1,7 @@
 package com.fc.springcloud.provider.Impl.hcloud;
 
+import com.fc.springcloud.mesh.Cluster;
+import com.fc.springcloud.mesh.MeshClient;
 import com.fc.springcloud.provider.Impl.hcloud.exception.CreateException;
 import com.fc.springcloud.provider.Impl.hcloud.exception.InvokeException;
 import com.fc.springcloud.provider.Impl.hcloud.exception.InvokeFunctionException;
@@ -7,17 +9,27 @@ import com.fc.springcloud.provider.Impl.hcloud.exception.RuntimeEnvironmentExcep
 import com.fc.springcloud.provider.PlatformProvider;
 import java.io.IOException;
 import java.util.HashMap;
+import java.util.List;
 import java.util.Map;
+import java.util.concurrent.ArrayBlockingQueue;
+import java.util.concurrent.BlockingQueue;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 import java.util.concurrent.locks.Lock;
 import java.util.concurrent.locks.ReadWriteLock;
+import java.util.concurrent.locks.ReentrantLock;
 import java.util.concurrent.locks.ReentrantReadWriteLock;
+import lombok.Getter;
+import lombok.Setter;
+import lombok.SneakyThrows;
 import org.apache.juli.logging.Log;
 import org.apache.juli.logging.LogFactory;
+import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Component;
 
 @Component
+@Getter
+@Setter
 public class HCloudProvider implements PlatformProvider {
 
   private static final Log logger = LogFactory.getLog(HCloudProvider.class);
@@ -25,12 +37,24 @@ public class HCloudProvider implements PlatformProvider {
   private ReadWriteLock readWriteLock;
   private WorkerMaintainerServer workerMaintainer;
   private Map<String, Resource> functions;
+  private Map<String, BlockingQueue<Cluster>> clusterSyncCollection;
+  private Lock clusterSyncCollectionLock;
+  private Map<String, Boolean> clusterHasChanged;
+  private Lock hasChangedLock;
   private ExecutorService backend;
+
+  @Autowired
+  private MeshClient meshInjector;
+
   public HCloudProvider() {
-    functions = new HashMap<>();
-    readWriteLock = new ReentrantReadWriteLock();
-    workerMaintainer = new WorkerMaintainerServer(7777);
-    backend = Executors.newFixedThreadPool(1);
+    this.functions = new HashMap<>();
+    this.readWriteLock = new ReentrantReadWriteLock();
+    this.clusterHasChanged = new HashMap<>();
+    this.hasChangedLock = new ReentrantLock();
+    this.workerMaintainer = new WorkerMaintainerServer(7777, this.clusterHasChanged, this.hasChangedLock);
+    this.backend = Executors.newFixedThreadPool(2);
+    this.clusterSyncCollection = new HashMap<>();
+    this.clusterSyncCollectionLock = new ReentrantLock();
     backend.execute(new Runnable() {
       @Override
       public void run() {
@@ -39,6 +63,34 @@ public class HCloudProvider implements PlatformProvider {
           workerMaintainer.blockUntilShutdown();
         } catch (IOException | InterruptedException e) {
           logger.fatal(e.getMessage());
+        }
+      }
+    });
+
+    backend.execute(new Runnable() {
+      @SneakyThrows
+      @Override
+      public void run() {
+        while (true) {
+          hasChangedLock.lock();
+          for (String functionName : clusterHasChanged.keySet()) {
+            if (clusterHasChanged.get(functionName)) {
+              clusterSyncCollectionLock.lock();
+              BlockingQueue<Cluster> downstream = clusterSyncCollection.get(functionName);
+              clusterSyncCollectionLock.unlock();
+              if (downstream == null) {
+                logger.warn("function " + functionName + " does not have the sync queue");
+                continue;
+              }
+              List<String> instances = workerMaintainer
+                  .GetInstanceByFunctionName(functionName);
+              Cluster cluster = new Cluster(instances, "hcloud", functionName);
+              downstream.add(cluster);
+            }
+          }
+          clusterHasChanged.clear();
+          hasChangedLock.unlock();
+          Thread.sleep(1000);
         }
       }
     });
@@ -78,6 +130,14 @@ public class HCloudProvider implements PlatformProvider {
       writeLock.unlock();
       throw new CreateException("function " + funcName + " has already been created");
     }
+    // todo set some optional parameter
+    BlockingQueue<Cluster> functionSyncQueue = new ArrayBlockingQueue<>(10);
+    clusterSyncCollectionLock.lock();
+    clusterSyncCollection.put(funcName, functionSyncQueue);
+    clusterSyncCollectionLock.unlock();
+    logger.info("meshInjector");
+    logger.info(meshInjector);
+    meshInjector.syncFunctionInfo(funcName, "hcloud.com", "hcloud.com", null, functionSyncQueue);
   }
 
   @Override

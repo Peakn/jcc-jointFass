@@ -13,10 +13,13 @@ import io.grpc.inprocess.InProcessChannelBuilder;
 import io.grpc.inprocess.InProcessServerBuilder;
 import io.grpc.stub.StreamObserver;
 import java.io.IOException;
+import java.util.HashMap;
 import java.util.List;
+import java.util.Map;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 import java.util.concurrent.TimeUnit;
+import java.util.concurrent.locks.ReentrantLock;
 import jointfaas.manager.ManagerGrpc;
 import jointfaas.manager.ManagerGrpc.ManagerBlockingStub;
 import jointfaas.manager.ManagerOuterClass;
@@ -46,6 +49,7 @@ public class WorkerMaintainerServerTest {
 
   private static final Log logger = LogFactory.getLog(WorkerMaintainerServerTest.class);
 
+  Map<String, Boolean> hasChanged;
   WorkerMaintainerServer maintainerServer;
   ManagedChannel channel;
   ManagedChannel workerChannel;
@@ -126,7 +130,8 @@ public class WorkerMaintainerServerTest {
 
   @Before
   public void setUp() throws IOException, InterruptedException {
-    maintainerServer = new WorkerMaintainerServer(7777);
+    hasChanged = new HashMap<>();
+    maintainerServer = new WorkerMaintainerServer(7777, hasChanged, new ReentrantLock());
     String serverName = InProcessServerBuilder.generateName();
     channel = ManagedChannelBuilder.forTarget("127.0.0.1:7777").usePlaintext().build();
     workerServer = InProcessServerBuilder

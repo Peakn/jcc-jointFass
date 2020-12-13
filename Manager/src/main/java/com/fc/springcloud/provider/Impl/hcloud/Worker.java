@@ -5,6 +5,8 @@ import com.fc.springcloud.provider.Impl.hcloud.exception.InitFunctionException;
 import com.fc.springcloud.provider.Impl.hcloud.exception.InvokeException;
 import com.google.protobuf.ByteString;
 import io.grpc.ManagedChannel;
+import java.util.List;
+import java.util.Map;
 import jointfaas.worker.InitFunctionRequest;
 import jointfaas.worker.InitFunctionResponse;
 import jointfaas.worker.InitFunctionResponse.Code;
@@ -28,6 +30,8 @@ public class Worker {
   private String addr;
   private ManagedChannel channel;
   private ManagedChannel heartbeatChannel;
+  private String status = "Running";
+  private Map<String, List<String>> instances;
 
   public void initFunction(String funcName, String image, String runtime, String codeURI,
       int memorySize, int timeout) {

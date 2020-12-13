@@ -1,6 +1,7 @@
 package Manager.provider.hcloud;
 
 
+import com.fc.springcloud.mesh.MeshClient;
 import com.fc.springcloud.provider.Impl.hcloud.HCloudProvider;
 import com.fc.springcloud.provider.Impl.hcloud.exception.InvokeException;
 import com.fc.springcloud.provider.Impl.hcloud.exception.RuntimeEnvironmentException;
@@ -21,14 +22,23 @@ public class HCloudWithWorkerTest {
   HCloudProvider hCloudProvider;
 
   String testFuncName = "test-func";
-  String testCodeURI = "http://106.15.225.249:8080/index.zip";
+  String testCodeURI = "http://106.15.225.249:8080/index-old.zip";
   String testRuntime = "python3";
 
   @Before
   public void setUp() throws IOException, InterruptedException {
+
     hCloudProvider = new HCloudProvider();
+    MeshClient meshClient = new MeshClient();
+    meshClient.setDefinition("106.15.225.249:50051");
+    meshClient.setTarget("106.15.225.249:40041");
+    meshClient.setTracePort(6832);
+    meshClient.setTraceHost("106.15.225.249");
+    meshClient.deleteFunctionInMesh(testFuncName);
+    meshClient.createFunctionInMesh(testFuncName, "GET");
+    hCloudProvider.setMeshInjector(meshClient);
     logger.info("start sleep");
-    Thread.sleep(10000); // wait for manager server start.
+    Thread.sleep(10000); // wait for worker server start.
   }
 
   @Test
