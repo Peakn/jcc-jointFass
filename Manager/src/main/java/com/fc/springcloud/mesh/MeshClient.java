@@ -13,22 +13,34 @@ import java.io.IOException;
 import java.net.URL;
 import java.nio.file.Files;
 import java.nio.file.Paths;
+import java.util.ArrayList;
+import java.util.List;
 import java.util.Map;
 import java.util.concurrent.BlockingQueue;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
+import jointfaas.mesh.definition.Definition.ApplicationSpec;
+import jointfaas.mesh.definition.Definition.CreateApplicationRequest;
+import jointfaas.mesh.definition.Definition.CreateApplicationResponse;
 import jointfaas.mesh.definition.Definition.CreateFunctionRequest;
 import jointfaas.mesh.definition.Definition.CreateFunctionResponse;
+import jointfaas.mesh.definition.Definition.DeleteApplicationRequest;
+import jointfaas.mesh.definition.Definition.DeleteApplicationResponse;
 import jointfaas.mesh.definition.Definition.DeleteFunctionRequest;
 import jointfaas.mesh.definition.Definition.FunctionSpec;
 import jointfaas.mesh.definition.Definition.StatusCode;
+import jointfaas.mesh.definition.Definition.UpdateApplicationRequest;
+import jointfaas.mesh.definition.Definition.UpdateApplicationResponse;
 import jointfaas.mesh.definition.Definition.UpdateFunctionRequest;
 import jointfaas.mesh.definition.Definition.UpdateFunctionResponse;
 import jointfaas.mesh.definition.DefinitionServerGrpc;
 import jointfaas.mesh.definition.DefinitionServerGrpc.DefinitionServerBlockingStub;
 import jointfaas.mesh.definition.DefinitionServerGrpc.DefinitionServerStub;
+import jointfaas.mesh.model.Model;
+import jointfaas.mesh.model.Model.Application;
 import jointfaas.mesh.model.Model.Info;
 import jointfaas.mesh.model.Model.Method;
+import jointfaas.mesh.model.Model.Step;
 import lombok.Setter;
 import lombok.SneakyThrows;
 import net.lingala.zip4j.ZipFile;
@@ -91,6 +103,7 @@ public class MeshClient {
 
     public void start() {
       // start info collection thread
+      logger.info("start info collection thread to sync");
       if (priceUpstream != null) {
         // start price collection
         collectionThreads.execute(new Runnable() {
@@ -121,8 +134,15 @@ public class MeshClient {
         @SneakyThrows
         @Override
         public void run() {
+          Integer hash = 0;
           while (true) {
             if (cluster != null) {
+              if (hash.equals(cluster.hashCode())) {
+                Thread.sleep(1000);
+                continue;
+              }
+              hash = cluster.hashCode();
+              logger.info("update cluster" + cluster.toString());
               UpdateFunctionRequest req = UpdateFunctionRequest.newBuilder()
                   .setFunctionSpec(FunctionSpec.newBuilder()
                       .setName(functionName).
@@ -265,6 +285,70 @@ public class MeshClient {
     env.put("POLICY", "simple"); // todo hard code
   }
 
+  public void createApplication(String applicationName, List<String> rawSteps) {
+    List<Model.Step> steps = new ArrayList<>();
+    for (String step: rawSteps) {
+      steps.add(Step.newBuilder().setFunctionName(step).build());
+    }
+    ManagedChannel channel = ManagedChannelBuilder.forTarget(definition).usePlaintext()
+        .build();
+    DefinitionServerBlockingStub client = DefinitionServerGrpc
+        .newBlockingStub(channel);
+    CreateApplicationResponse resp = client
+        .createApplication(CreateApplicationRequest.newBuilder()
+            .setApplicationSpec(ApplicationSpec.newBuilder()
+                .setApplication(Application.newBuilder()
+                    .setName(applicationName)
+                    .addAllStepChains(steps)
+                    .build())
+                .build())
+            .build());
+    if (!resp.getStatusCode().equals(StatusCode.OK)) {
+      channel.shutdown();
+      throw new RuntimeException(resp.getMsg());
+    }
+    channel.shutdown();
+  }
+
+  public void deleteApplication(String applicationName) {
+    ManagedChannel channel = ManagedChannelBuilder.forTarget(definition).usePlaintext()
+        .build();
+    DefinitionServerBlockingStub client = DefinitionServerGrpc
+        .newBlockingStub(channel);
+    DeleteApplicationResponse resp = client.deleteApplication(DeleteApplicationRequest.newBuilder()
+        .setName(applicationName)
+        .build());
+    if (!resp.getStatusCode().equals(StatusCode.OK)) {
+      channel.shutdown();
+      throw new RuntimeException(resp.getMsg());
+    }
+    channel.shutdown();
+  }
+
+  public void updateApplication(String applicationName, List<String> rawSteps) {
+    List<Model.Step> steps = new ArrayList<>();
+    for (String step: rawSteps) {
+      steps.add(Step.newBuilder().setFunctionName(step).build());
+    }
+    ManagedChannel channel = ManagedChannelBuilder.forTarget(definition).usePlaintext()
+        .build();
+    DefinitionServerBlockingStub client = DefinitionServerGrpc
+        .newBlockingStub(channel);
+    UpdateApplicationResponse resp = client
+        .updateApplication(UpdateApplicationRequest.newBuilder()
+            .setApplicationSpec(ApplicationSpec.newBuilder()
+                .setApplication(Application.newBuilder()
+                    .setName(applicationName)
+                    .addAllStepChains(steps)
+                    .build())
+                .build())
+            .build());
+    if (!resp.getStatusCode().equals(StatusCode.OK)) {
+      channel.shutdown();
+      throw new RuntimeException(resp.getMsg());
+    }
+    channel.shutdown();
+  }
   public void createFunctionInMesh(String name, String method) {
     ManagedChannel channel = ManagedChannelBuilder.forTarget(definition).usePlaintext()
         .build();

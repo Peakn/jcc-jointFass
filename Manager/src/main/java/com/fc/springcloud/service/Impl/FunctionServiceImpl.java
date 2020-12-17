@@ -12,6 +12,7 @@ import com.fc.springcloud.exception.EntityExistsException;
 import com.fc.springcloud.exception.EntityNotFoundException;
 import com.fc.springcloud.exception.OutOfBusinessException;
 import com.fc.springcloud.mapping.FunctionMapper;
+import com.fc.springcloud.mesh.MeshClient;
 import com.fc.springcloud.pojo.domain.FunctionDo;
 import com.fc.springcloud.pojo.domain.FunctionFileDo;
 import com.fc.springcloud.pojo.dto.FunctionDto;
@@ -52,11 +53,13 @@ public class FunctionServiceImpl implements FunctionService {
     private ManagerService managerService;
     @Autowired
     private Snowflake snowflake;
+    @Autowired
+    private MeshClient meshClient;
     @Value("${File.base-dir}")
 
     private String baseDir;
-    @Value("${server.address}")
-    private String serverAddress;
+
+    private String serverAddress = "10.0.0.19";
 
     @Value("${server.port}")
     private String serverPort;
@@ -64,6 +67,8 @@ public class FunctionServiceImpl implements FunctionService {
     @Override
     public int saveFunction(FunctionDo functionDo) {
         functionDo.setCreatedTime(LocalDateTime.now());
+        // todo resolve the problem about method hardcode
+        meshClient.createFunctionInMesh(functionDo.getFunctionName(), "GET");
         return functionMapper.insertSelective(functionDo);
     }
 
@@ -104,6 +109,7 @@ public class FunctionServiceImpl implements FunctionService {
 
     @Override
     public int deleteFunctionByFunctionName(String functionName) {
+        meshClient.deleteFunctionInMesh(functionName);
         return functionMapper.deleteFunctionByFunctionName(functionName);
     }
 

@@ -1,8 +1,10 @@
 package com.fc.springcloud.provider.Impl.hcloud;
 
+import com.fc.springcloud.provider.Impl.hcloud.Worker.Status;
 import com.fc.springcloud.provider.Impl.hcloud.exception.ChannelException;
 import com.fc.springcloud.provider.Impl.hcloud.exception.InitFunctionException;
 import com.fc.springcloud.provider.Impl.hcloud.exception.InvokeException;
+import com.fc.springcloud.provider.Impl.hcloud.exception.NoWorkerException;
 import com.fc.springcloud.provider.Impl.hcloud.exception.WorkerNotFoundException;
 import io.grpc.ManagedChannel;
 import io.grpc.ManagedChannelBuilder;
@@ -140,7 +142,7 @@ public class WorkerMaintainerServer extends ManagerImplBase {
         Lock writeLock = lock.writeLock();
         writeLock.lock();
         Worker worker = workers.get(workerId);
-        if (worker.getStatus().equals("Unhealthy")) {
+        if (worker != null && worker.getStatus().equals(Status.UNHEALTHY)) {
           hasChangedLock.lock();
           for (String key : worker.getInstances().keySet()) {
             hasChanged.put(key, true);
@@ -149,6 +151,9 @@ public class WorkerMaintainerServer extends ManagerImplBase {
           // the node is unhealthy, need clean up all containers' information on it
           logger.error("worker:" + workerId + "is unhealthy, clean up all containers");
           worker.setInstances(new HashMap<>());
+        }
+        if (worker == null) {
+          logger.info("worker " + workerId +" is dead");
         }
         writeLock.unlock();
       }
@@ -196,8 +201,6 @@ public class WorkerMaintainerServer extends ManagerImplBase {
 
     @Override
     public void onNext(HeartBeatResponse heartBeatResponse) {
-      logger.info("heartbeat onNext");
-      logger.info(heartBeatResponse.getNonce());
       conditionLock.lock();
       condition.signalAll();
       conditionLock.unlock();
@@ -219,7 +222,7 @@ public class WorkerMaintainerServer extends ManagerImplBase {
       Lock workerLock = lock.writeLock();
       workerLock.lock();
       Worker worker = workers.get(workerId);
-      worker.setStatus("Unhealthy");
+      worker.setStatus(Status.UNHEALTHY);
       workerLock.unlock();
     }
   }
@@ -330,7 +333,24 @@ public class WorkerMaintainerServer extends ManagerImplBase {
   }
 
   public boolean hasWorker() {
-    logger.info(workers);
-    return workers.size() != 0;
+    return !workers.isEmpty();
+  }
+
+  public void CreateInstance(Resource resource) {
+    if (!hasWorker()) {
+      logger.warn("there are no workers");
+      throw new NoWorkerException("there are no workers");
+    }
+
+    // choose the first one now, here we can add policy to choose
+    Worker target = null;
+    for (String id : this.workers.keySet()) {
+      target = this.workers.get(id);
+    }
+    if (target != null && target.getStatus().equals(Status.RUNNING)) {
+      target.initFunction(resource.funcName, resource.image, resource.runtime, resource.codeURI,
+          resource.memorySize, resource.timeout);
+      target.createContainer(resource);
+    }
   }
 }

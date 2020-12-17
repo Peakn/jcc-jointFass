@@ -80,6 +80,13 @@
     </properties>
 
     <dependencies>
+        <!-- https://mvnrepository.com/artifact/com.gitee.sunchenbin.mybatis.actable/mybatis-enhance-actable -->
+        <dependency>
+            <groupId>com.gitee.sunchenbin.mybatis.actable</groupId>
+            <artifactId>mybatis-enhance-actable</artifactId>
+            <version>1.4.0.RELEASE</version>
+        </dependency>
+
         <!-- https://mvnrepository.com/artifact/net.lingala.zip4j/zip4j -->
         <dependency>
             <groupId>net.lingala.zip4j</groupId>

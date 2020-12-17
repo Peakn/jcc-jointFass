@@ -135,7 +135,7 @@ public class FileController {
     public ResponseEntity<Object> getFunctionFile(@NotNull(message = "FunctionId cannot empty.") @PathVariable("functionId") String functionId) {
         Optional<FunctionFileDo> file = fileService.getFileById(functionId);
         if (!file.isPresent()) {
-            throw new EntityNotFoundException("File was not fount");
+            throw new EntityNotFoundException("File was not found");
         }
         return ResponseEntity.ok()
                 .header(HttpHeaders.CONTENT_DISPOSITION, "fileName=" + file.get().getName())

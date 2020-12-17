@@ -23,17 +23,15 @@ public class ManagerServiceImpl implements ManagerService {
       builder.Build(ProviderName.HCLOUD)
           .CreateFunction(functionName, codeURI, runTimeEnvir);
     } catch (Exception e) {
-        logger.info("Create function to HCloud error");
-        throw e;
+        logger.info("Create function to HCloud error:" + e.getMessage());
     }
 
-    try {
-      builder.Build(ProviderName.ALICLOUD)
-          .CreateFunction(functionName, codeURI, runTimeEnvir);
-    } catch (Exception e) {
-      logger.info("Create function to AliCloud error");
-      throw e;
-    }
+//    try {
+//      builder.Build(ProviderName.ALICLOUD)
+//          .CreateFunction(functionName, codeURI, runTimeEnvir);
+//    } catch (Exception e) {
+//      logger.info("Create function to AliCloud error:" + e.getMessage());
+//    }
   }
 
   public String InvokeFunction(String functionName, String jsonString) {

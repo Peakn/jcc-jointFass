@@ -124,4 +124,13 @@ class FunctionTest {
         FunctionDo function = functionService.getFunction(stringMap.get("functionName"));
         Assertions.assertNull(function);
     }
+
+    @Test
+    @Order(5)
+    void getBase64Test() {
+        String caller = FileBase64Util.encryptToBase64("C:\\Users\\ty020\\Desktop\\index-old.zip");
+        String callee = FileBase64Util.encryptToBase64("C:\\Users\\ty020\\Desktop\\index-old-callee.zip");
+        System.out.println("caller:" + caller + "\n");
+        System.out.println("callee:" + callee + "\n");
+    }
 }

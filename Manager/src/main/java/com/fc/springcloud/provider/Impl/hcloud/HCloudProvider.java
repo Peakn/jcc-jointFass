@@ -25,6 +25,7 @@ import lombok.SneakyThrows;
 import org.apache.juli.logging.Log;
 import org.apache.juli.logging.LogFactory;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Component;
 
 @Component
@@ -43,6 +44,9 @@ public class HCloudProvider implements PlatformProvider {
   private Lock hasChangedLock;
   private ExecutorService backend;
 
+  @Value("${mesh.use}")
+  private boolean enableInject;
+
   @Autowired
   private MeshClient meshInjector;
 
@@ -51,10 +55,11 @@ public class HCloudProvider implements PlatformProvider {
     this.readWriteLock = new ReentrantReadWriteLock();
     this.clusterHasChanged = new HashMap<>();
     this.hasChangedLock = new ReentrantLock();
-    this.workerMaintainer = new WorkerMaintainerServer(7777, this.clusterHasChanged, this.hasChangedLock);
-    this.backend = Executors.newFixedThreadPool(2);
+    this.workerMaintainer = new WorkerMaintainerServer(30347, this.clusterHasChanged, this.hasChangedLock);
+    this.backend = Executors.newFixedThreadPool(3);
     this.clusterSyncCollection = new HashMap<>();
     this.clusterSyncCollectionLock = new ReentrantLock();
+    // for connection with worker
     backend.execute(new Runnable() {
       @Override
       public void run() {
@@ -62,38 +67,48 @@ public class HCloudProvider implements PlatformProvider {
           workerMaintainer.start();
           workerMaintainer.blockUntilShutdown();
         } catch (IOException | InterruptedException e) {
-          logger.fatal(e.getMessage());
+          logger.fatal("worker maintainer err:" + e.getMessage());
         }
       }
     });
-
-    backend.execute(new Runnable() {
-      @SneakyThrows
-      @Override
-      public void run() {
-        while (true) {
-          hasChangedLock.lock();
-          for (String functionName : clusterHasChanged.keySet()) {
-            if (clusterHasChanged.get(functionName)) {
-              clusterSyncCollectionLock.lock();
-              BlockingQueue<Cluster> downstream = clusterSyncCollection.get(functionName);
-              clusterSyncCollectionLock.unlock();
-              if (downstream == null) {
-                logger.warn("function " + functionName + " does not have the sync queue");
-                continue;
+    if (enableInject) {
+      // for sycn information to mesh center
+      backend.execute(new Runnable() {
+        @SneakyThrows
+        @Override
+        public void run() {
+          while (true) {
+            hasChangedLock.lock();
+            for (String functionName : clusterHasChanged.keySet()) {
+              if (clusterHasChanged.get(functionName)) {
+                clusterSyncCollectionLock.lock();
+                BlockingQueue<Cluster> downstream = clusterSyncCollection.get(functionName);
+                clusterSyncCollectionLock.unlock();
+                if (downstream == null) {
+                  logger.warn("function " + functionName + " does not have the sync queue");
+                  continue;
+                }
+                List<String> instances = workerMaintainer
+                    .GetInstanceByFunctionName(functionName);
+                Cluster cluster = new Cluster(instances, "hcloud", functionName);
+                downstream.add(cluster);
               }
-              List<String> instances = workerMaintainer
-                  .GetInstanceByFunctionName(functionName);
-              Cluster cluster = new Cluster(instances, "hcloud", functionName);
-              downstream.add(cluster);
             }
+            clusterHasChanged.clear();
+            hasChangedLock.unlock();
+            Thread.sleep(1000);
           }
-          clusterHasChanged.clear();
-          hasChangedLock.unlock();
-          Thread.sleep(1000);
         }
-      }
-    });
+      });
+    }
+
+    // todo for auto scaling
+    // now will be the action after an application is create
+//    backend.execute(new Runnable() {
+//      @Override
+//      public void run() {
+//      }
+//    });
   }
 
   public void stop() throws InterruptedException {
@@ -112,7 +127,7 @@ public class HCloudProvider implements PlatformProvider {
         break;
       }
       case "python3": {
-        image = "registry.cn-shanghai.aliyuncs.com/jointfaas-serverless/env-python:v1.0";
+        image = "registry.cn-shanghai.aliyuncs.com/jointfaas-serverless/env-python:v2.0";
         break;
       }
       default: {
@@ -133,11 +148,13 @@ public class HCloudProvider implements PlatformProvider {
     // todo set some optional parameter
     BlockingQueue<Cluster> functionSyncQueue = new ArrayBlockingQueue<>(10);
     clusterSyncCollectionLock.lock();
-    clusterSyncCollection.put(funcName, functionSyncQueue);
+    if(clusterSyncCollection.get(funcName) != null) {
+      logger.info("function " + funcName + "has a sync queue");
+    } else {
+      clusterSyncCollection.put(funcName, functionSyncQueue);
+      meshInjector.syncFunctionInfo(funcName, "hcloud.com", "hcloud.com", null, functionSyncQueue);
+    }
     clusterSyncCollectionLock.unlock();
-    logger.info("meshInjector");
-    logger.info(meshInjector);
-    meshInjector.syncFunctionInfo(funcName, "hcloud.com", "hcloud.com", null, functionSyncQueue);
   }
 
   @Override
@@ -180,5 +197,21 @@ public class HCloudProvider implements PlatformProvider {
     return null;
   }
 
+  private void CreateContainer(String funcName) {
+    // find a resource
+    Lock lock = readWriteLock.readLock();
+    lock.lock();
+    Resource resource = this.functions.get(funcName);
+    if(resource == null) {
+      throw new RuntimeException("function " + funcName + " resource not found");
+    }
+    this.workerMaintainer.CreateInstance(resource);
+    lock.unlock();
+  }
 
+  public void InitWorkerLoad(List<String> steps) {
+    for (String funcName: steps) {
+      this.CreateContainer(funcName);
+    }
+  }
 }

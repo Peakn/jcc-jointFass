@@ -4,7 +4,7 @@ package com.fc.springcloud.pojo.dto;
 import com.fc.springcloud.annotation.ValueOfEnum;
 import com.fc.springcloud.enums.RunEnvEnum;
 import com.fc.springcloud.pojo.vo.AbstractVoEntity;
-
+import javax.persistence.Table;
 import javax.validation.Valid;
 import javax.validation.constraints.Min;
 import javax.validation.constraints.NotBlank;
@@ -16,6 +16,7 @@ import javax.validation.constraints.NotNull;
  * @author cossj
  * @date 2020-11-19
  */
+@Table
 public class FunctionDto extends AbstractVoEntity {
     /**
      * 函数名称
