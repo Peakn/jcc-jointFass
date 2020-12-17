@@ -245,13 +245,13 @@ public class WorkerMaintainerServer extends ManagerImplBase {
           .build());
     } else {
       workers.put(request.getId(), worker);
-      ManagedChannel beatChannel = ManagedChannelBuilder.forTarget(request.getAddr()).usePlaintext()
-          .build();
-      worker.setHeartbeatChannel(beatChannel);
       heartbeats.execute(new Runnable() {
         @Override
         public void run() {
-          String workerId = new String(worker.getIdentity());
+          ManagedChannel beatChannel = ManagedChannelBuilder.forTarget(request.getAddr()).usePlaintext()
+              .build();
+          worker.setHeartbeatChannel(beatChannel);
+          String workerId = new String(request.getId());
           WorkerStub heartBeatClient = WorkerGrpc.newStub(beatChannel);
           HeartBeatClient hbc = new HeartBeatClient(lock, workers, workerId);
           StreamObserver<HeartBeatRequest> heartBeatRequestObserver = heartBeatClient
