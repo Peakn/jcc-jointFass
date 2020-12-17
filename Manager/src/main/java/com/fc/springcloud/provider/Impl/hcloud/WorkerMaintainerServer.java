@@ -245,6 +245,7 @@ public class WorkerMaintainerServer extends ManagerImplBase {
           .build());
     } else {
       workers.put(request.getId(), worker);
+      logger.info("request worker id:" + request.getId());
       heartbeats.execute(new Runnable() {
         @Override
         public void run() {

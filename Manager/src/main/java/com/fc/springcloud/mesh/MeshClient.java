@@ -14,6 +14,7 @@ import java.net.URL;
 import java.nio.file.Files;
 import java.nio.file.Paths;
 import java.util.ArrayList;
+import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.concurrent.BlockingQueue;
@@ -59,6 +60,8 @@ public class MeshClient {
 
   private final ExecutorService functionInfoUpdate;
 
+  private Map<String, UpdateFunctionClient> ufcCollection;
+
   @Value("${mesh.target}")
   String target;
 
@@ -72,18 +75,21 @@ public class MeshClient {
   Integer tracePort;
 
   public MeshClient() {
+    ufcCollection = new HashMap<>();
     functionInfoUpdate = Executors.newCachedThreadPool();
   }
 
   @Setter
   static class UpdateFunctionClient implements StreamObserver<UpdateFunctionResponse> {
 
+    private static final Log logger = LogFactory.getLog(UpdateFunctionClient.class);
     private Boolean stop;
     private String functionName;
     private String internalUrl;
     private String url;
     private Float price;
     private Cluster cluster;
+    private ManagedChannel channel;
     private BlockingQueue<Float> priceUpstream;
     private BlockingQueue<Cluster> clusterUpstream;
     private StreamObserver<UpdateFunctionRequest> updateFunctionRequestObserver;
@@ -118,6 +124,7 @@ public class MeshClient {
       }
 
       if (clusterUpstream != null) {
+        logger.info("cluster upstream start");
         // start
         collectionThreads.execute(new Runnable() {
           @SneakyThrows
@@ -125,6 +132,7 @@ public class MeshClient {
           public void run() {
             do {
               cluster = clusterUpstream.take();
+              logger.info("cluster get from upstream: " + cluster.toString());
             } while (!stop);
           }
         });
@@ -134,14 +142,16 @@ public class MeshClient {
         @SneakyThrows
         @Override
         public void run() {
-          Integer hash = 0;
+          String hash = "";
           while (true) {
+            logger.info(cluster);
             if (cluster != null) {
-              if (hash.equals(cluster.hashCode())) {
+              if (hash.equals(cluster.toString())) {
+                logger.info("cluster: " + cluster.toString());
                 Thread.sleep(1000);
                 continue;
               }
-              hash = cluster.hashCode();
+              hash = cluster.toString();
               logger.info("update cluster" + cluster.toString());
               UpdateFunctionRequest req = UpdateFunctionRequest.newBuilder()
                   .setFunctionSpec(FunctionSpec.newBuilder()
@@ -182,20 +192,17 @@ public class MeshClient {
 
   public void syncFunctionInfo(String functionName, String internalUrl, String url,
       BlockingQueue<Float> priceUpstream, BlockingQueue<Cluster> clusterUpstream) {
-    functionInfoUpdate.execute(new Runnable() {
-      @Override
-      public void run() {
-        ManagedChannel channel = ManagedChannelBuilder.forTarget(definition).usePlaintext()
-            .build();
-        DefinitionServerStub client = DefinitionServerGrpc.newStub(channel);
-        UpdateFunctionClient ufc = new UpdateFunctionClient(functionName, internalUrl, url,
-            priceUpstream, clusterUpstream);
-        StreamObserver<UpdateFunctionRequest> updateFunctionRequestStreamObserver = client
-            .updateFunction(ufc);
-        ufc.setUpdateFunctionRequestObserver(updateFunctionRequestStreamObserver);
-        ufc.start();
-      }
-    });
+    ManagedChannel channel = ManagedChannelBuilder.forTarget(definition).usePlaintext()
+        .build();
+    DefinitionServerStub client = DefinitionServerGrpc.newStub(channel);
+    UpdateFunctionClient ufc = new UpdateFunctionClient(functionName, internalUrl, url,
+        priceUpstream, clusterUpstream);
+    StreamObserver<UpdateFunctionRequest> updateFunctionRequestStreamObserver = client
+        .updateFunction(ufc);
+    ufc.setChannel(channel);
+    ufc.setUpdateFunctionRequestObserver(updateFunctionRequestStreamObserver);
+    ufcCollection.put(functionName, ufc);
+    ufc.start();
   }
 
   public String injectInitializer() {
@@ -287,7 +294,7 @@ public class MeshClient {
 
   public void createApplication(String applicationName, List<String> rawSteps) {
     List<Model.Step> steps = new ArrayList<>();
-    for (String step: rawSteps) {
+    for (String step : rawSteps) {
       steps.add(Step.newBuilder().setFunctionName(step).build());
     }
     ManagedChannel channel = ManagedChannelBuilder.forTarget(definition).usePlaintext()
@@ -327,7 +334,7 @@ public class MeshClient {
 
   public void updateApplication(String applicationName, List<String> rawSteps) {
     List<Model.Step> steps = new ArrayList<>();
-    for (String step: rawSteps) {
+    for (String step : rawSteps) {
       steps.add(Step.newBuilder().setFunctionName(step).build());
     }
     ManagedChannel channel = ManagedChannelBuilder.forTarget(definition).usePlaintext()
@@ -349,6 +356,7 @@ public class MeshClient {
     }
     channel.shutdown();
   }
+
   public void createFunctionInMesh(String name, String method) {
     ManagedChannel channel = ManagedChannelBuilder.forTarget(definition).usePlaintext()
         .build();

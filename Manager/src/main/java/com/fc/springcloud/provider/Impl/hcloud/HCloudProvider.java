@@ -55,7 +55,8 @@ public class HCloudProvider implements PlatformProvider {
     this.readWriteLock = new ReentrantReadWriteLock();
     this.clusterHasChanged = new HashMap<>();
     this.hasChangedLock = new ReentrantLock();
-    this.workerMaintainer = new WorkerMaintainerServer(30347, this.clusterHasChanged, this.hasChangedLock);
+    this.workerMaintainer = new WorkerMaintainerServer(30347, this.clusterHasChanged,
+        this.hasChangedLock);
     this.backend = Executors.newFixedThreadPool(3);
     this.clusterSyncCollection = new HashMap<>();
     this.clusterSyncCollectionLock = new ReentrantLock();
@@ -71,36 +72,37 @@ public class HCloudProvider implements PlatformProvider {
         }
       }
     });
-    if (enableInject) {
-      // for sycn information to mesh center
-      backend.execute(new Runnable() {
-        @SneakyThrows
-        @Override
-        public void run() {
-          while (true) {
-            hasChangedLock.lock();
-            for (String functionName : clusterHasChanged.keySet()) {
-              if (clusterHasChanged.get(functionName)) {
-                clusterSyncCollectionLock.lock();
-                BlockingQueue<Cluster> downstream = clusterSyncCollection.get(functionName);
-                clusterSyncCollectionLock.unlock();
-                if (downstream == null) {
-                  logger.warn("function " + functionName + " does not have the sync queue");
-                  continue;
-                }
-                List<String> instances = workerMaintainer
-                    .GetInstanceByFunctionName(functionName);
-                Cluster cluster = new Cluster(instances, "hcloud", functionName);
-                downstream.add(cluster);
+    // for sync information to mesh center
+    backend.execute(new Runnable() {
+      @SneakyThrows
+      @Override
+      public void run() {
+        while (true) {
+          hasChangedLock.lock();
+          logger.info("cluster changed");
+          logger.info(clusterHasChanged);
+          for (String functionName : clusterHasChanged.keySet()) {
+            if (clusterHasChanged.get(functionName)) {
+              clusterSyncCollectionLock.lock();
+              BlockingQueue<Cluster> downstream = clusterSyncCollection.get(functionName);
+              clusterSyncCollectionLock.unlock();
+              if (downstream == null) {
+                logger.warn("function " + functionName + " does not have the sync queue");
+                continue;
               }
+              List<String> instances = workerMaintainer
+                  .GetInstanceByFunctionName(functionName);
+              Cluster cluster = new Cluster(instances, "hcloud", functionName);
+              logger.info("download stream add cluster: " + cluster.toString());
+              downstream.add(cluster);
             }
-            clusterHasChanged.clear();
-            hasChangedLock.unlock();
-            Thread.sleep(1000);
           }
+          clusterHasChanged.clear();
+          hasChangedLock.unlock();
+          Thread.sleep(1000);
         }
-      });
-    }
+      }
+    });
 
     // todo for auto scaling
     // now will be the action after an application is create
@@ -148,11 +150,12 @@ public class HCloudProvider implements PlatformProvider {
     // todo set some optional parameter
     BlockingQueue<Cluster> functionSyncQueue = new ArrayBlockingQueue<>(10);
     clusterSyncCollectionLock.lock();
-    if(clusterSyncCollection.get(funcName) != null) {
+    if (clusterSyncCollection.get(funcName) != null) {
       logger.info("function " + funcName + "has a sync queue");
     } else {
       clusterSyncCollection.put(funcName, functionSyncQueue);
-      meshInjector.syncFunctionInfo(funcName, "hcloud.com", "hcloud.com", null, functionSyncQueue);
+      meshInjector.syncFunctionInfo(funcName, "hcloud.com", "hcloud.com", null,
+          clusterSyncCollection.get(funcName));
     }
     clusterSyncCollectionLock.unlock();
   }
@@ -160,13 +163,13 @@ public class HCloudProvider implements PlatformProvider {
   @Override
   public String InvokeFunction(String funcName, String jsonString) {
     // if worker is not found, just return
-    if (!workerMaintainer.hasWorker()){
+    if (!workerMaintainer.hasWorker()) {
       throw new InvokeFunctionException("No registered worker is found");
     }
     // check function first, if function not found ,just return
     // find a worker logic is in the WorkerMaintainer
     Resource resource = functions.get(funcName);
-    if (resource == null){
+    if (resource == null) {
       throw new InvokeFunctionException("Can not find the resource");
     }
     try {
@@ -202,7 +205,7 @@ public class HCloudProvider implements PlatformProvider {
     Lock lock = readWriteLock.readLock();
     lock.lock();
     Resource resource = this.functions.get(funcName);
-    if(resource == null) {
+    if (resource == null) {
       throw new RuntimeException("function " + funcName + " resource not found");
     }
     this.workerMaintainer.CreateInstance(resource);
@@ -210,7 +213,7 @@ public class HCloudProvider implements PlatformProvider {
   }
 
   public void InitWorkerLoad(List<String> steps) {
-    for (String funcName: steps) {
+    for (String funcName : steps) {
       this.CreateContainer(funcName);
     }
   }
