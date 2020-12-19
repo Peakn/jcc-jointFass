@@ -170,7 +170,7 @@ public class WorkerMaintainerServerTest {
   @Test
   public void TestInitFunction() {
     testResource.setImage(defaultImage);
-    this.maintainerServer.initFunction(workerId, testResource);
+    this.maintainerServer.InitFunction(workerId, testResource);
     List<String> workerList = this.maintainerServer.getFunctionWorkerMap()
         .get(testFuncName);
     Assert.assertTrue(workerList.contains(workerId));
@@ -179,7 +179,7 @@ public class WorkerMaintainerServerTest {
   @Test
   public void TestInvokeFunction() {
     testResource.setImage(defaultImage);
-    this.maintainerServer.initFunction(workerId, testResource);
+    this.maintainerServer.InitFunction(workerId, testResource);
     List<String> workerList = this.maintainerServer.getFunctionWorkerMap()
         .get(testFuncName);
     Assert.assertTrue(workerList.contains(workerId));
@@ -191,7 +191,7 @@ public class WorkerMaintainerServerTest {
   public void TestInvokeRuntimeErrorFunction() {
     testResource.setImage(defaultImage);
     testResource.setFuncName(testRuntimeErrorFuncName);
-    this.maintainerServer.initFunction(workerId, testResource);
+    this.maintainerServer.InitFunction(workerId, testResource);
     List<String> workerList = this.maintainerServer.getFunctionWorkerMap()
         .get(testFuncName);
     Assert.assertTrue(workerList.contains(workerId));
@@ -203,7 +203,7 @@ public class WorkerMaintainerServerTest {
   public void TestInvokeNoSuchFunctionFunction() {
     testResource.setImage(defaultImage);
     testResource.setFuncName(testRuntimeErrorFuncName);
-    this.maintainerServer.initFunction(workerId, testResource);
+    this.maintainerServer.InitFunction(workerId, testResource);
     List<String> workerList = this.maintainerServer.getFunctionWorkerMap()
         .get(testFuncName);
     Assert.assertTrue(workerList.contains(workerId));

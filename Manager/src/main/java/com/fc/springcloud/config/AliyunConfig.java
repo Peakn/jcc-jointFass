@@ -1,6 +1,7 @@
 package com.fc.springcloud.config;
 
 import com.aliyuncs.fc.client.FunctionComputeClient;
+import com.aliyuncs.fc.config.Config;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.context.annotation.Bean;
 import org.springframework.stereotype.Component;
@@ -19,12 +20,12 @@ public class AliyunConfig {
     @Value("${aliyun.service.ROLE}")
     private String ROLE;
 
-    @Bean
-    public FunctionComputeClient initialize(){
-        FunctionComputeClient fcClient = new FunctionComputeClient(REGION, accountId, accessKey, accessSecretKey);
-        fcClient.getConfig().setConnectionRequestTimeoutMillis(400000);
-        fcClient.getConfig().setConnectTimeoutMillis(400000);
-        fcClient.getConfig().setReadTimeoutMillis(400000);
+    public FunctionComputeClient GetAliCloudClient(){
+        Config config = new Config(REGION, accountId, accessKey, accessSecretKey, null, false);
+        config.setConnectionRequestTimeoutMillis(400000);
+        config.setConnectTimeoutMillis(400000);
+        config.setReadTimeoutMillis(400000);
+        FunctionComputeClient fcClient = new FunctionComputeClient(config);
         return fcClient;
     }
 

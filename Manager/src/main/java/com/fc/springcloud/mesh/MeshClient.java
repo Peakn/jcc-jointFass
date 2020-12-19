@@ -138,13 +138,15 @@ public class MeshClient {
         });
       }
       // todo add cron job to sync information to mesh center
+      if (priceUpstream == null && clusterUpstream == null) {
+        return;
+      }
       collectionThreads.execute(new Runnable() {
         @SneakyThrows
         @Override
         public void run() {
           String hash = "";
           while (true) {
-            logger.info(cluster);
             if (cluster != null) {
               if (hash.equals(cluster.toString())) {
                 logger.info("cluster: " + cluster.toString());
@@ -206,18 +208,21 @@ public class MeshClient {
   }
 
   public String injectInitializer() {
-    return "index.mesh_initializer";
+    return "index_mesh.mesh_initializer";
   }
 
   public String injectHandler() {
-    return "index.handler";
+    return "index_mesh.handler";
   }
 
   public byte[] injectMesh(String functionName, RunEnvEnum runtime, String codeURL)
       throws IOException {
+    logger.info(codeURL);
     URL resourceURL = new URL(codeURL);
     File resourceCode = File.createTempFile(functionName + runtime, "");
-    FileUtils.copyURLToFile(resourceURL, resourceCode);
+    logger.info("inject mesh step 1");
+    FileUtils.copyURLToFile(resourceURL, resourceCode, 4000, 40000);
+    logger.info("inject mesh step 2");
     String envCodeURI = null;
     // todo configurable envCodeURI
     switch (runtime) {
@@ -230,8 +235,10 @@ public class MeshClient {
       }
     }
     File result = injectRuntime(resourceCode, new URL(envCodeURI));
+    logger.info("inject mesh step 3");
     String applicationName = getApplicationNameByFunctionName(functionName);
     result = injectConfig(result, applicationName);
+    logger.info("inject mesh step 4");
     return Files.readAllBytes(Paths.get(result.getPath()));
   }
 

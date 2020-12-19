@@ -79,8 +79,6 @@ public class HCloudProvider implements PlatformProvider {
       public void run() {
         while (true) {
           hasChangedLock.lock();
-          logger.info("cluster changed");
-          logger.info(clusterHasChanged);
           for (String functionName : clusterHasChanged.keySet()) {
             if (clusterHasChanged.get(functionName)) {
               clusterSyncCollectionLock.lock();

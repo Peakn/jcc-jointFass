@@ -58,9 +58,6 @@ public class AliCloudProvider implements PlatformProvider {
   AliyunConfig config;
 
   @Autowired
-  private FunctionComputeClient fcClient;
-
-  @Autowired
   private String role;
 
   @Value("${mesh.use}")
@@ -78,11 +75,13 @@ public class AliCloudProvider implements PlatformProvider {
         new HttpMethod[]{HttpMethod.GET});
     ctRequest.setTriggerConfig(httpTriggerConfig);
     ctRequest.setQualifier("LATEST");
+    FunctionComputeClient fcClient = config.GetAliCloudClient();
     CreateTriggerResponse resp = fcClient.createTrigger(ctRequest);
     if (resp.getStatus() != HttpStatus.OK.value()) {
       throw new CreateTriggerException(new String(resp.getContent()));
     }
   }
+
   //Create Service
   public void CreateService(String serviceName) {
     //Create Service
@@ -90,6 +89,7 @@ public class AliCloudProvider implements PlatformProvider {
     csReq.setServiceName(serviceName);
     csReq.setDescription("The service aims at jointFaas.");
     try {
+      FunctionComputeClient fcClient = config.GetAliCloudClient();
       CreateServiceResponse csResp = fcClient.createService(csReq);
       logger.info("Created service, request ID " + csResp.getRequestId());
     } catch (Exception e) {
@@ -98,11 +98,11 @@ public class AliCloudProvider implements PlatformProvider {
     }
   }
 
-  private String parseInternalUrl(String serviceName,  String functionName) {
+  private String parseInternalUrl(String serviceName, String functionName) {
     return "";
   }
 
-  private String parseUrl(String serviceName,  String functionName) {
+  private String parseUrl(String serviceName, String functionName) {
     return "";
   }
 
@@ -129,31 +129,35 @@ public class AliCloudProvider implements PlatformProvider {
   public void CreateFunction(String functionName, String codeURL, String runTimeEnvir)
       throws IOException {
     // Create a function
+    logger.info("step 1");
     CreateFunctionRequest cfReq = new CreateFunctionRequest(SERVICE_NAME);
     cfReq.setFunctionName(functionName);
     cfReq.setMemorySize(128);
     cfReq.setRuntime(runTimeEnvir);
 
-    if (enableInject) {
-      cfReq.setInitializer(meshInjector.injectInitializer());
-      cfReq.setHandler(meshInjector.injectHandler());
-      Map<String, String> env = new HashMap<>();
-      meshInjector.injectEnv(env, provider, functionName);
-      cfReq.setEnvironmentVariables(env);
-      byte[] zipCode = meshInjector
-          .injectMesh(functionName, RunEnvEnum.valueOf(runTimeEnvir), codeURL);
-      Code code = new Code().setZipFile(zipCode);
-      cfReq.setCode(code);
-    } else {
-      cfReq.setHandler("jointfaas.handler");
-      byte[] zipCode = prepareCodeZip(codeURL, runTimeEnvir);
-      Code code = new Code().setZipFile(zipCode);
-      cfReq.setCode(code);
-    }
-
+    cfReq.setInitializer(meshInjector.injectInitializer());
+    cfReq.setHandler(meshInjector.injectHandler());
+    Map<String, String> env = new HashMap<>();
+    meshInjector.injectEnv(env, provider, functionName);
+    cfReq.setEnvironmentVariables(env);
+    logger.info("step 2");
+    byte[] zipCode = meshInjector
+        .injectMesh(functionName, RunEnvEnum.valueOf(runTimeEnvir), codeURL);
+    Code code = new Code().setZipFile(zipCode);
+    logger.info("step 3");
+    cfReq.setCode(code);
+    logger.info("step 4");
+//      cfReq.setHandler("jointfaas.handler");
+//      byte[] zipCode = prepareCodeZip(codeURL, runTimeEnvir);
+//      Code code = new Code().setZipFile(zipCode);
+//      cfReq.setCode(code);
+    FunctionComputeClient fcClient = config.GetAliCloudClient();
     try {
+      logger.info("step 5");
       CreateFunctionResponse cfResp = fcClient.createFunction(cfReq);
+      logger.info("step 6");
       CreateTrigger(functionName);
+      logger.info("step 7");
       logger.info("Created function, request ID " + cfResp.getRequestId());
       logger.info("Create function at time: " + cfResp.getCreatedTime());
     } catch (ClientException e) {
@@ -172,7 +176,8 @@ public class AliCloudProvider implements PlatformProvider {
       }
     }
     // todo set the priceUpstream
-    meshInjector.syncFunctionInfo(functionName, parseInternalUrl(functionName, SERVICE_NAME), parseUrl(functionName, SERVICE_NAME), null, null);
+    meshInjector.syncFunctionInfo(functionName, parseInternalUrl(functionName, SERVICE_NAME),
+        parseUrl(functionName, SERVICE_NAME), null, null);
   }
 
   @Override
@@ -182,7 +187,7 @@ public class AliCloudProvider implements PlatformProvider {
     //设置参数
 //        String payload = jsonObject.toJSONString();
     invkReq.setPayload(jsonString.getBytes());
-
+    FunctionComputeClient fcClient = config.GetAliCloudClient();
     InvokeFunctionResponse invkResp = fcClient.invokeFunction(invkReq);
     logger.info("Function invoke success, requestedId: " + invkResp.getRequestId());
     logger.info("Run result：" + new String(invkResp.getContent()));
@@ -219,6 +224,7 @@ public class AliCloudProvider implements PlatformProvider {
       ufReq.setCode(code);
     }
 
+    FunctionComputeClient fcClient = config.GetAliCloudClient();
     try {
       UpdateFunctionResponse ufResp = fcClient.updateFunction(ufReq);
       logger.info("Update function configurations and code success, the request id:" + ufResp
@@ -237,6 +243,7 @@ public class AliCloudProvider implements PlatformProvider {
   @Override
   public void DeleteFunction(String functionName) {
     DeleteFunctionRequest dfRep = new DeleteFunctionRequest(SERVICE_NAME, functionName);
+    FunctionComputeClient fcClient = config.GetAliCloudClient();
     try {
       DeleteFunctionResponse dfResp = fcClient.deleteFunction(dfRep);
       logger.info("Function Delete Success.Delete function success, the requested id: " + dfResp
@@ -254,6 +261,7 @@ public class AliCloudProvider implements PlatformProvider {
   @Override
   public Object ListFunction() {
     ListFunctionsRequest lfReq = new ListFunctionsRequest(SERVICE_NAME);
+    FunctionComputeClient fcClient = config.GetAliCloudClient();
     ListFunctionsResponse lfResp = fcClient.listFunctions(lfReq);
     return lfResp;
   }

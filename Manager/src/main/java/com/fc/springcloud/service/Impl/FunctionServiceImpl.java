@@ -59,7 +59,8 @@ public class FunctionServiceImpl implements FunctionService {
 
     private String baseDir;
 
-    private String serverAddress = "10.0.0.19";
+    @Value("${server.exportAddress}")
+    private String serverAddress;
 
     @Value("${server.port}")
     private String serverPort;

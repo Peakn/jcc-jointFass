@@ -26,12 +26,12 @@ public class ManagerServiceImpl implements ManagerService {
         logger.info("Create function to HCloud error:" + e.getMessage());
     }
 
-//    try {
-//      builder.Build(ProviderName.ALICLOUD)
-//          .CreateFunction(functionName, codeURI, runTimeEnvir);
-//    } catch (Exception e) {
-//      logger.info("Create function to AliCloud error:" + e.getMessage());
-//    }
+    try {
+      builder.Build(ProviderName.ALICLOUD)
+          .CreateFunction(functionName, codeURI, runTimeEnvir);
+    } catch (Exception e) {
+      logger.info("Create function to AliCloud error:" + e.getMessage());
+    }
   }
 
   public String InvokeFunction(String functionName, String jsonString) {

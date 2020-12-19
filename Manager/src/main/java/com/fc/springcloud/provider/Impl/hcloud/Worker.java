@@ -93,12 +93,25 @@ public class Worker {
     return null;
   }
 
-  public void createContainer(Resource resource) {
+  public void CreateContainer(Resource resource) {
     WorkerBlockingStub client = WorkerGrpc.newBlockingStub(channel);
     CreateContainerResp resp = client
         .createContainer(CreateContainerRequest.newBuilder()
             .setFuncName(resource.funcName)
             .build());
     logger.info(resp);
+  }
+
+  public Integer AggregateInstancesByFunctionName() {
+    return 0;
+  }
+
+  public Integer GetTotalInstances() {
+    int count = 0;
+    for (String funcName : instances.keySet()) {
+      List<String> funcInstances = instances.get(funcName);
+      count += funcInstances.size();
+    }
+    return count;
   }
 }

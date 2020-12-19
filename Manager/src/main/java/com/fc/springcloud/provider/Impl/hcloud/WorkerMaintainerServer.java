@@ -54,14 +54,14 @@ public class WorkerMaintainerServer extends ManagerImplBase {
 
   private ExecutorService heartbeats;
 
-  public WorkerMaintainerServer(int port, Map<String, Boolean> hasChanged, Lock hasChanedLock) {
+  public WorkerMaintainerServer(int port, Map<String, Boolean> hasChanged, Lock hasChangedLock) {
     this.workers = new HashMap<>();
     this.functionWorkerMap = new HashMap<>();
     this.lock = new ReentrantReadWriteLock();
     this.port = port;
     this.heartbeats = Executors.newCachedThreadPool();
     this.hasChanged = hasChanged;
-    this.hasChangedLock = hasChanedLock;
+    this.hasChangedLock = hasChangedLock;
   }
 
   public List<String> GetInstanceByFunctionName(String functionName) {
@@ -128,6 +128,7 @@ public class WorkerMaintainerServer extends ManagerImplBase {
         instanceByFunction.put(syncRequest.getFunctionName(), syncRequest.getInstancesList());
         writeLock.unlock();
         hasChangedLock.lock();
+        logger.info("put " + syncRequest.getFunctionName() + " has changed true");
         hasChanged.put(syncRequest.getFunctionName(), true);
         hasChangedLock.unlock();
         responseObserver.onNext(SyncResponse.newBuilder()
@@ -281,7 +282,7 @@ public class WorkerMaintainerServer extends ManagerImplBase {
       // find a worker randomly
       List<String> workerIds = new ArrayList<String>(workers.keySet());
       worker = workers.get(workerIds.get((int) (Math.random() * workerIds.size())));
-      initFunction(worker.getIdentity(), resource);
+      InitFunction(worker.getIdentity(), resource);
     } else {
       // randomly choose a worker in the array.
       worker = workers.get(workerList.get((int) (Math.random() * workerList.size())));
@@ -301,7 +302,7 @@ public class WorkerMaintainerServer extends ManagerImplBase {
   }
 
   // initFunction will be call before invokeFunction
-  public void initFunction(String workerId, Resource resource) {
+  public void InitFunction(String workerId, Resource resource) {
     Worker worker = workers.get(workerId);
     if (worker == null) {
       throw new WorkerNotFoundException("worker not found in initFunction", workerId);
@@ -337,6 +338,22 @@ public class WorkerMaintainerServer extends ManagerImplBase {
     return !workers.isEmpty();
   }
 
+  private Worker chooseWorker(Resource resource) {
+    Lock readLock = lock.readLock();
+    readLock.lock();
+    Worker target = null;
+    Integer lowerBound = 99999;
+    for (String workerId : this.workers.keySet()) {
+      Worker worker = this.workers.get(workerId);
+      Integer total = worker.GetTotalInstances();
+      if (total < lowerBound) {
+        target = worker;
+      }
+    }
+    readLock.unlock();
+    return target;
+  }
+
   public void CreateInstance(Resource resource) {
     if (!hasWorker()) {
       logger.warn("there are no workers");
@@ -344,14 +361,11 @@ public class WorkerMaintainerServer extends ManagerImplBase {
     }
 
     // choose the first one now, here we can add policy to choose
-    Worker target = null;
-    for (String id : this.workers.keySet()) {
-      target = this.workers.get(id);
-    }
+    Worker target = chooseWorker(resource);
     if (target != null && target.getStatus().equals(Status.RUNNING)) {
       target.initFunction(resource.funcName, resource.image, resource.runtime, resource.codeURI,
           resource.memorySize, resource.timeout);
-      target.createContainer(resource);
+      target.CreateContainer(resource);
     }
   }
 }
