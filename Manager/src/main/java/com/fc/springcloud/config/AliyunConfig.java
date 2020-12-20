@@ -8,15 +8,22 @@ import org.springframework.stereotype.Component;
 
 @Component
 public class AliyunConfig {
+
+    @Value("${mesh.use}")
+    public Boolean meshEnable;
+
     @Value("${aliyun.user.accessKey}")
     private String accessKey;
+
     @Value("${aliyun.user.accessSecretKey}")
     private String accessSecretKey;
+
     @Value("${aliyun.user.accountId}")
     private String accountId;
 
     @Value("${aliyun.service.REGION}")
     private String REGION;
+
     @Value("${aliyun.service.ROLE}")
     private String ROLE;
 

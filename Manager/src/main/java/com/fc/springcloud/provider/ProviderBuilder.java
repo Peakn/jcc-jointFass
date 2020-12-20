@@ -2,12 +2,10 @@ package com.fc.springcloud.provider;
 
 import com.fc.springcloud.provider.Impl.alicloud.AliCloudProvider;
 import com.fc.springcloud.provider.Impl.hcloud.HCloudProvider;
-import lombok.NoArgsConstructor;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Component;
 
 @Component
-@NoArgsConstructor
 public class ProviderBuilder {
 
   @Autowired
@@ -26,8 +24,5 @@ public class ProviderBuilder {
       }
     }
     return null;
-  }
-  public HCloudProvider GethCloudProvider() {
-    return hCloudProvider;
   }
 }

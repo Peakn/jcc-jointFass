@@ -1,11 +1,12 @@
 package com.fc.springcloud.provider.Impl.hcloud;
 
+import com.fc.springcloud.config.HCloudConfig;
+import com.fc.springcloud.mapping.FunctionMapper;
 import com.fc.springcloud.mesh.Cluster;
 import com.fc.springcloud.mesh.MeshClient;
-import com.fc.springcloud.provider.Impl.hcloud.exception.CreateException;
+import com.fc.springcloud.pojo.domain.FunctionDo;
 import com.fc.springcloud.provider.Impl.hcloud.exception.InvokeException;
 import com.fc.springcloud.provider.Impl.hcloud.exception.InvokeFunctionException;
-import com.fc.springcloud.provider.Impl.hcloud.exception.RuntimeEnvironmentException;
 import com.fc.springcloud.provider.PlatformProvider;
 import java.io.IOException;
 import java.util.HashMap;
@@ -33,25 +34,66 @@ import org.springframework.stereotype.Component;
 @Setter
 public class HCloudProvider implements PlatformProvider {
 
+  private class FunctionManager {
+
+    private final Log logger = LogFactory.getLog(FunctionManager.class);
+
+    public Resource get(String funcName) {
+      FunctionDo functionDo = HCloudProvider.this.functionMapper.selectByFunctionName(funcName);
+      String image = "";
+      switch (functionDo.getRunEnv()) {
+        case python3: {
+          image = PYTHON_RUNTIME;
+          break;
+        }
+        case java8: {
+          image = JAVA_RUNTIME;
+          break;
+        }
+        default: {
+          logger.warn("unsupported runtime");
+          System.exit(-1);
+        }
+      }
+      String functionId = functionDo.getFunctionId();
+      String path = "http://" + serverAddress + ":" + serverPort + "/functionFile/" + functionId;
+      return new Resource(functionDo.getFunctionName(), image,
+          functionDo.getRunEnv().getDisplayName(), path, functionDo.getMemorySize(),
+          functionDo.getTimeout());
+    }
+  }
+
   private static final Log logger = LogFactory.getLog(HCloudProvider.class);
 
   private ReadWriteLock readWriteLock;
   private WorkerMaintainerServer workerMaintainer;
-  private Map<String, Resource> functions;
+  private FunctionManager functions;
   private Map<String, BlockingQueue<Cluster>> clusterSyncCollection;
   private Lock clusterSyncCollectionLock;
   private Map<String, Boolean> clusterHasChanged;
   private Lock hasChangedLock;
   private ExecutorService backend;
 
-  @Value("${mesh.use}")
-  private boolean enableInject;
+  String JAVA_RUNTIME = "registry.cn-shanghai.aliyuncs.com/jointfaas-serverless/env-java:v1.0";
+  String PYTHON_RUNTIME = "registry.cn-shanghai.aliyuncs.com/jointfaas-serverless/env-python:v2.0";
 
   @Autowired
   private MeshClient meshInjector;
 
+  @Autowired
+  private HCloudConfig config;
+
+  @Autowired
+  private FunctionMapper functionMapper;
+
+  @Value("${server.exportAddress}")
+  private String serverAddress;
+
+  @Value("${server.port}")
+  private String serverPort;
+
   public HCloudProvider() {
-    this.functions = new HashMap<>();
+    this.functions = new FunctionManager();
     this.readWriteLock = new ReentrantReadWriteLock();
     this.clusterHasChanged = new HashMap<>();
     this.hasChangedLock = new ReentrantLock();
@@ -60,7 +102,11 @@ public class HCloudProvider implements PlatformProvider {
     this.backend = Executors.newFixedThreadPool(3);
     this.clusterSyncCollection = new HashMap<>();
     this.clusterSyncCollectionLock = new ReentrantLock();
-    // for connection with worker
+  }
+
+  public void start() {
+    logger.info("hcloud provider start");
+    // for connection with workers
     backend.execute(new Runnable() {
       @Override
       public void run() {
@@ -72,43 +118,41 @@ public class HCloudProvider implements PlatformProvider {
         }
       }
     });
+
+    logger.info("mesh.use:" + config.meshEnable);
     // for sync information to mesh center
-    backend.execute(new Runnable() {
-      @SneakyThrows
-      @Override
-      public void run() {
-        while (true) {
-          hasChangedLock.lock();
-          for (String functionName : clusterHasChanged.keySet()) {
-            if (clusterHasChanged.get(functionName)) {
-              clusterSyncCollectionLock.lock();
-              BlockingQueue<Cluster> downstream = clusterSyncCollection.get(functionName);
-              clusterSyncCollectionLock.unlock();
-              if (downstream == null) {
-                logger.warn("function " + functionName + " does not have the sync queue");
-                continue;
+    if (config.meshEnable) {
+      backend.execute(new Runnable() {
+        @SneakyThrows
+        @Override
+        public void run() {
+          while (true) {
+            hasChangedLock.lock();
+            for (String functionName : clusterHasChanged.keySet()) {
+              if (clusterHasChanged.get(functionName)) {
+                clusterSyncCollectionLock.lock();
+                BlockingQueue<Cluster> downstream = clusterSyncCollection.get(functionName);
+                clusterSyncCollectionLock.unlock();
+                if (downstream == null) {
+                  logger.warn("function " + functionName + " does not have the sync queue");
+                  continue;
+                }
+                List<String> instances = workerMaintainer
+                    .GetInstanceByFunctionName(functionName);
+                Cluster cluster = new Cluster(instances, "hcloud", functionName);
+                logger.info("download stream add cluster: " + cluster.toString());
+                downstream.add(cluster);
               }
-              List<String> instances = workerMaintainer
-                  .GetInstanceByFunctionName(functionName);
-              Cluster cluster = new Cluster(instances, "hcloud", functionName);
-              logger.info("download stream add cluster: " + cluster.toString());
-              downstream.add(cluster);
             }
+            clusterHasChanged.clear();
+            hasChangedLock.unlock();
+            Thread.sleep(1000);
           }
-          clusterHasChanged.clear();
-          hasChangedLock.unlock();
-          Thread.sleep(1000);
         }
-      }
-    });
+      });
+    }
 
     // todo for auto scaling
-    // now will be the action after an application is create
-//    backend.execute(new Runnable() {
-//      @Override
-//      public void run() {
-//      }
-//    });
   }
 
   public void stop() throws InterruptedException {
@@ -120,31 +164,23 @@ public class HCloudProvider implements PlatformProvider {
   @Override
   public void CreateFunction(String funcName, String codeURI, String runtime) {
     // just write into memory;
-    String image = "";
-    switch (runtime) {
-      case "java8": {
-        image = "registry.cn-shanghai.aliyuncs.com/jointfaas-serverless/env-java:v1.0";
-        break;
-      }
-      case "python3": {
-        image = "registry.cn-shanghai.aliyuncs.com/jointfaas-serverless/env-python:v2.0";
-        break;
-      }
-      default: {
-        throw new RuntimeEnvironmentException("runtime has not been supported at hcloud", runtime);
-      }
-    }
+//    String image = "";
+//    switch (runtime) {
+//      case "java8": {
+//        image = "registry.cn-shanghai.aliyuncs.com/jointfaas-serverless/env-java:v1.0";
+//        break;
+//      }
+//      case "python3": {
+//        image = "registry.cn-shanghai.aliyuncs.com/jointfaas-serverless/env-python:v2.0";
+//        break;
+//      }
+//      default: {
+//        throw new RuntimeEnvironmentException("runtime has not been supported at hcloud", runtime);
+//      }
+//    }
     // todo hard code at memorySize and timeout
-    Resource resource = new Resource(funcName, image, runtime, codeURI, 128, 60);
-    Lock writeLock = readWriteLock.writeLock();
-    writeLock.lock();
-    if (functions.get(funcName) == null) {
-      functions.put(funcName, resource);
-      writeLock.unlock();
-    } else {
-      writeLock.unlock();
-      throw new CreateException("function " + funcName + " has already been created");
-    }
+    // Resource resource = new Resource(funcName, image, runtime, codeURI, 128, 60);
+
     // todo set some optional parameter
     BlockingQueue<Cluster> functionSyncQueue = new ArrayBlockingQueue<>(10);
     clusterSyncCollectionLock.lock();
@@ -152,7 +188,8 @@ public class HCloudProvider implements PlatformProvider {
       logger.info("function " + funcName + "has a sync queue");
     } else {
       clusterSyncCollection.put(funcName, functionSyncQueue);
-      meshInjector.syncFunctionInfo(funcName, "hcloud.com", "hcloud.com", null,
+      String url = config.gatewayUrl + config.routerPrefix + funcName;
+      meshInjector.syncFunctionInfo(funcName, "hcloud.com", url, null,
           clusterSyncCollection.get(funcName));
     }
     clusterSyncCollectionLock.unlock();
@@ -186,11 +223,7 @@ public class HCloudProvider implements PlatformProvider {
 
   @Override
   public void DeleteFunction(String funcName) {
-    Lock writeLock = readWriteLock.writeLock();
-    writeLock.lock();
-    functions.remove(funcName);
-    workerMaintainer.DeleteFunction(funcName);
-    writeLock.unlock();
+    // todo delete instance in all workers
   }
 
   @Override

@@ -34,7 +34,6 @@ import java.nio.file.Files;
 import java.nio.file.Paths;
 import java.util.HashMap;
 import java.util.Map;
-import lombok.NoArgsConstructor;
 import org.apache.commons.io.FileUtils;
 import org.apache.juli.logging.Log;
 import org.apache.juli.logging.LogFactory;
@@ -45,7 +44,6 @@ import org.springframework.http.HttpStatus;
 import org.springframework.stereotype.Component;
 
 @Component
-@NoArgsConstructor
 public class AliCloudProvider implements PlatformProvider {
 
   private static final Log logger = LogFactory.getLog(AliCloudProvider.class);
@@ -129,28 +127,31 @@ public class AliCloudProvider implements PlatformProvider {
   public void CreateFunction(String functionName, String codeURL, String runTimeEnvir)
       throws IOException {
     // Create a function
-    logger.info("step 1");
-    CreateFunctionRequest cfReq = new CreateFunctionRequest(SERVICE_NAME);
-    cfReq.setFunctionName(functionName);
-    cfReq.setMemorySize(128);
-    cfReq.setRuntime(runTimeEnvir);
 
-    cfReq.setInitializer(meshInjector.injectInitializer());
-    cfReq.setHandler(meshInjector.injectHandler());
-    Map<String, String> env = new HashMap<>();
-    meshInjector.injectEnv(env, provider, functionName);
-    cfReq.setEnvironmentVariables(env);
-    logger.info("step 2");
-    byte[] zipCode = meshInjector
-        .injectMesh(functionName, RunEnvEnum.valueOf(runTimeEnvir), codeURL);
-    Code code = new Code().setZipFile(zipCode);
-    logger.info("step 3");
-    cfReq.setCode(code);
-    logger.info("step 4");
-//      cfReq.setHandler("jointfaas.handler");
-//      byte[] zipCode = prepareCodeZip(codeURL, runTimeEnvir);
-//      Code code = new Code().setZipFile(zipCode);
-//      cfReq.setCode(code);
+      logger.info("step 1");
+      CreateFunctionRequest cfReq = new CreateFunctionRequest(SERVICE_NAME);
+      cfReq.setFunctionName(functionName);
+      cfReq.setMemorySize(128);
+      cfReq.setRuntime(runTimeEnvir);
+    if (config.meshEnable) {
+      cfReq.setInitializer(meshInjector.injectInitializer());
+      cfReq.setHandler(meshInjector.injectHandler());
+      Map<String, String> env = new HashMap<>();
+      meshInjector.injectEnv(env, provider, functionName);
+      cfReq.setEnvironmentVariables(env);
+      logger.info("step 2");
+      byte[] zipCode = meshInjector
+          .injectMesh(functionName, RunEnvEnum.valueOf(runTimeEnvir), codeURL);
+      Code code = new Code().setZipFile(zipCode);
+      logger.info("step 3");
+      cfReq.setCode(code);
+      logger.info("step 4");
+    } else {
+      cfReq.setHandler("jointfaas.handler");
+      byte[] zipCode = prepareCodeZip(codeURL, runTimeEnvir);
+      Code code = new Code().setZipFile(zipCode);
+      cfReq.setCode(code);
+    }
     FunctionComputeClient fcClient = config.GetAliCloudClient();
     try {
       logger.info("step 5");

@@ -130,7 +130,9 @@ class FunctionTest {
     void getBase64Test() {
         String caller = FileBase64Util.encryptToBase64("C:\\Users\\ty020\\Desktop\\index-old.zip");
         String callee = FileBase64Util.encryptToBase64("C:\\Users\\ty020\\Desktop\\index-old-callee.zip");
+        String funcC = FileBase64Util.encryptToBase64("C:\\Users\\ty020\\Desktop\\index-funcC.zip");
         System.out.println("caller:" + caller + "\n");
         System.out.println("callee:" + callee + "\n");
+        System.out.println("funcc:" + funcC + "\n");
     }
 }
