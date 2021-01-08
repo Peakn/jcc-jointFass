@@ -131,8 +131,12 @@ class FunctionTest {
         String caller = FileBase64Util.encryptToBase64("C:\\Users\\ty020\\Desktop\\index-old.zip");
         String callee = FileBase64Util.encryptToBase64("C:\\Users\\ty020\\Desktop\\index-old-callee.zip");
         String funcC = FileBase64Util.encryptToBase64("C:\\Users\\ty020\\Desktop\\index-funcC.zip");
+        String jsFunc = FileBase64Util.encryptToBase64("C:\\Users\\ty020\\Desktop\\index-js.zip");
+        String jsCallee = FileBase64Util.encryptToBase64("C:\\Users\\ty020\\Desktop\\index-callee.zip");
         System.out.println("caller:" + caller + "\n");
         System.out.println("callee:" + callee + "\n");
         System.out.println("funcc:" + funcC + "\n");
+        System.out.println("js-func:" + jsFunc + "\n");
+        System.out.println("js-callee:" + jsCallee + "\n");
     }
 }

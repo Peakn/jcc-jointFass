@@ -50,6 +50,10 @@ public class HCloudProvider implements PlatformProvider {
           image = JAVA_RUNTIME;
           break;
         }
+        case nodejs10: {
+          image = nodejs10_RUNTIME;
+          break;
+        }
         default: {
           logger.warn("unsupported runtime");
           System.exit(-1);
@@ -76,6 +80,7 @@ public class HCloudProvider implements PlatformProvider {
 
   String JAVA_RUNTIME = "registry.cn-shanghai.aliyuncs.com/jointfaas-serverless/env-java:v1.0";
   String PYTHON_RUNTIME = "registry.cn-shanghai.aliyuncs.com/jointfaas-serverless/env-python:v2.0";
+  String nodejs10_RUNTIME = "registry.cn-shanghai.aliyuncs.com/jointfaas-serverless/env-javascript:v1.0";
 
   @Autowired
   private MeshClient meshInjector;

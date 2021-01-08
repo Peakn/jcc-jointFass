@@ -46,7 +46,7 @@ public class FunctionVo extends AbstractVoEntity {
     private String regionId;
 
     /**
-     * 函数运行环境（nodejs、python、java、golang）
+     * 函数运行环境（nodejs10、python、java、golang）
      */
     private RunEnvEnum runEnv;
 

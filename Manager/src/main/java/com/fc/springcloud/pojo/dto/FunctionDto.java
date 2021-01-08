@@ -51,7 +51,7 @@ public class FunctionDto extends AbstractVoEntity {
     private String regionId;
 
     /**
-     * 函数运行环境（nodejs、python、java、golang）
+     * 函数运行环境（nodejs10、python、java、golang）
      */
     @NotBlank(message = "Container environment is mandatory")
     @ValueOfEnum(enumClass = RunEnvEnum.class, message = "The container operating environment value is incorrect")

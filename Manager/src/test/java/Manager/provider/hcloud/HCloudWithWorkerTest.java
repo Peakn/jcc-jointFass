@@ -25,8 +25,8 @@ public class HCloudWithWorkerTest {
 
   String testFuncNameA = "test-funcA";
   String testFuncNameB = "test-funcB";
-  String testCodeURIA = "http://106.15.225.249:8080/index-old.zip";
-  String testCodeURIB = "http://106.15.225.249:8080/index-old-callee.zip";
+  String testCodeURIA = "http://106.15.225.249:8081/index-old.zip";
+  String testCodeURIB = "http://106.15.225.249:8081/index-old-callee.zip";
   String testRuntime = "python3";
   MeshClient meshClient = null;
   String applicationName = "test-hcloud";

@@ -227,7 +227,11 @@ public class MeshClient {
     // todo configurable envCodeURI
     switch (runtime) {
       case python3: {
-        envCodeURI = "http://106.15.225.249:8080/env.zip";
+        envCodeURI = "http://106.15.225.249:8081/env-py.zip";
+        break;
+      }
+      case nodejs10: {
+        envCodeURI = "http://106.15.225.249:8081/env-js.zip";
         break;
       }
       default: {

@@ -16,9 +16,9 @@ public enum RunEnvEnum implements BaseEnum {
      */
     java8(1, "java8"),
     /**
-     * nodejs环境
+     * nodejs10环境
      */
-    nodejs(2, "nodejs"),
+    nodejs10(2, "nodejs10"),
     /**
      * golang环境
      */
