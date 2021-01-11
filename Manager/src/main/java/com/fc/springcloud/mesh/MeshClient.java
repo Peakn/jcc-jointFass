@@ -224,14 +224,25 @@ public class MeshClient {
     FileUtils.copyURLToFile(resourceURL, resourceCode, 4000, 40000);
     logger.info("inject mesh step 2");
     String envCodeURI = null;
+    // todo try to use local file first
     // todo configurable envCodeURI
     switch (runtime) {
       case python3: {
-        envCodeURI = "http://106.15.225.249:8081/env-py.zip";
+        File envPython = new File("./env-py.zip");
+        if (envPython.exists()) {
+          envCodeURI = envPython.toURI().toURL().toString();
+        } else {
+          envCodeURI = "http://106.15.225.249:8081/env-py.zip";
+        }
         break;
       }
       case nodejs10: {
-        envCodeURI = "http://106.15.225.249:8081/env-js.zip";
+        File envJS = new File("./env-js.zip");
+        if (envJS.exists()) {
+          envCodeURI = envJS.toURI().toURL().toString();
+        } else {
+          envCodeURI = "http://106.15.225.249:8081/env-js.zip";
+        }
         break;
       }
       default: {
