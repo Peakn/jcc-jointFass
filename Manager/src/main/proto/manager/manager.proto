@@ -7,6 +7,7 @@ package manager;
 service Manager {
     rpc Register(RegisterRequest) returns (RegisterResponse) {}
     rpc Sync(stream SyncRequest) returns (stream SyncResponse) {}
+    rpc ColdStart(CodeStartRequest) returns (CodeStartResponse) {}
 }
 
 message RegisterRequest {
@@ -31,6 +32,19 @@ message SyncRequest {
 }
 
 message SyncResponse {
+    enum Code {
+        OK = 0;
+        ERROR = 1;
+    }
+    Code code = 1;
+}
+
+message CodeStartRequest {
+    string applicationName = 1;
+    string functionName = 2;
+}
+
+message CodeStartResponse {
     enum Code {
         OK = 0;
         ERROR = 1;

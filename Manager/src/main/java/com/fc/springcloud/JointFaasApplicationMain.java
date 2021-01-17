@@ -12,6 +12,6 @@ public class JointFaasApplicationMain {
   public static void main(String[] args) {
     ConfigurableApplicationContext context =  SpringApplication.run(JointFaasApplicationMain.class, args);
     HCloudProvider hcloudProvider = context.getBean(HCloudProvider.class);
-    hcloudProvider.start();
+    hcloudProvider.Start();
   }
 }

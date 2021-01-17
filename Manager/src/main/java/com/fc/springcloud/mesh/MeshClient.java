@@ -29,6 +29,8 @@ import jointfaas.mesh.definition.Definition.DeleteApplicationRequest;
 import jointfaas.mesh.definition.Definition.DeleteApplicationResponse;
 import jointfaas.mesh.definition.Definition.DeleteFunctionRequest;
 import jointfaas.mesh.definition.Definition.FunctionSpec;
+import jointfaas.mesh.definition.Definition.GetApplicationRequest;
+import jointfaas.mesh.definition.Definition.GetApplicationResponse;
 import jointfaas.mesh.definition.Definition.StatusCode;
 import jointfaas.mesh.definition.Definition.UpdateApplicationRequest;
 import jointfaas.mesh.definition.Definition.UpdateApplicationResponse;
@@ -149,12 +151,11 @@ public class MeshClient {
           while (true) {
             if (cluster != null) {
               if (hash.equals(cluster.toString())) {
-                logger.info("cluster: " + cluster.toString());
-                Thread.sleep(1000);
+                Thread.sleep(100);
                 continue;
               }
               hash = cluster.toString();
-              logger.info("update cluster" + cluster.toString());
+              logger.info("update cluster:" + cluster.toString());
               UpdateFunctionRequest req = UpdateFunctionRequest.newBuilder()
                   .setFunctionSpec(FunctionSpec.newBuilder()
                       .setName(functionName).
@@ -169,7 +170,7 @@ public class MeshClient {
                   .build();
               updateFunctionRequestObserver.onNext(req);
             }
-            Thread.sleep(1000);
+            Thread.sleep(100);
           }
         }
       });
@@ -339,6 +340,25 @@ public class MeshClient {
     channel.shutdown();
   }
 
+  public Application getApplication(String applicationName) {
+    ManagedChannel channel = ManagedChannelBuilder.forTarget(definition).usePlaintext()
+        .build();
+    DefinitionServerBlockingStub client = DefinitionServerGrpc
+        .newBlockingStub(channel);
+    GetApplicationResponse resp = client
+        .getApplication(GetApplicationRequest.newBuilder()
+            .setName(applicationName)
+            .build());
+    if (!resp.getStatusCode().equals(StatusCode.OK)) {
+      channel.shutdown();
+      throw new RuntimeException(resp.getMsg());
+    }
+    channel.shutdown();
+    return resp.getApplicationSpec().getApplication();
+  }
+
+
+
   public void deleteApplication(String applicationName) {
     ManagedChannel channel = ManagedChannelBuilder.forTarget(definition).usePlaintext()
         .build();
@@ -406,4 +426,11 @@ public class MeshClient {
         .build());
     channel.shutdown();
   }
+
+  // XDS will connection to mesh control plane and sync information storing in memory.
+  // this function should call in thread at start time (only once)
+  public void XDS() {
+  }
+
+
 }

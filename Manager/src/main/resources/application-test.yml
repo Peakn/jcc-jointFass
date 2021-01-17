@@ -1,0 +1,69 @@
+mode: hcloud
+# hcloud means just use HCloudProvider
+# alicloud means just use AliCloudProvider
+# mixed means both HCloudProvider and AliCloudProvider are used
+server:
+  port: 30342
+  address: 0.0.0.0
+  exportAddress: 10.0.0.19
+spring:
+  servlet:
+    multipart:
+      max-file-size: 1024MB
+      max-request-size: 1024MB
+      enabled: true
+  devtools:
+    restarter:
+      enabled: true
+  datasource:
+    driver-class-name: com.mysql.cj.jdbc.Driver
+    url: jdbc:mysql://106.15.225.249:3306/jccplatform?useUnicode=true&characterEncoding=utf-8&useSSL=false&allowPublicKeyRetrieval=true
+    username: root
+    password:
+  data:
+    mongodb:
+      username: admin
+      password: secret
+      host: localhost
+      port: 30343
+      database: jccplatform
+hcloud:
+  port: 30347
+
+mybatis:
+  config-location: classpath:mybatis/mybatis-config.xml
+  mapper-locations: classpath:mybatis/mapper/*.xml
+  table:
+    auto: create
+
+pagehelper:
+  helperDialect: mysql
+  reasonable: true
+  supportMethodsArguments: true
+  params: count=countSql
+
+logging:
+  level:
+    com.fc.springcloud.mapping: debug
+File:
+  base-dir: ./
+mesh:
+  use: true
+  gatewayUrl: 202.120.40.8:30344
+  routerPrefix: /function/
+  definition: 106.15.225.249:50051
+  target: 106.15.225.249:40041
+  prom:
+    target: 10.0.88.5:9090
+  trace:
+    host: 106.15.225.249
+    port: 6832
+
+aliyun:
+  service:
+    REGION: cn-hangzhou
+    ROLE: acs:ram::1537006230256697:role/fnf-execution-default-role
+  user:
+    accessKey: LTAI4G8qw15pVdgFBkt2Baww
+    accessSecretKey: CU6yeKkWBvxuSeK9kDxXW172pj3edR
+    accountId: 1537006230256697

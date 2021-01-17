@@ -6,6 +6,7 @@ import com.fc.springcloud.service.ManagerService;
 import org.apache.juli.logging.Log;
 import org.apache.juli.logging.LogFactory;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Service;
 
 import java.io.IOException;
@@ -18,31 +19,87 @@ public class ManagerServiceImpl implements ManagerService {
   @Autowired
   private ProviderBuilder builder;
 
-  public void CreateFunction(String functionName, String codeURI, String runTimeEnvir) throws IOException {
-    try {
-      builder.Build(ProviderName.HCLOUD)
-          .CreateFunction(functionName, codeURI, runTimeEnvir);
-    } catch (Exception e) {
-        logger.info("Create function to HCloud error:" + e.getMessage());
-    }
+  @Value("${mode}")
+  private String mode;
 
-    try {
-      builder.Build(ProviderName.ALICLOUD)
-          .CreateFunction(functionName, codeURI, runTimeEnvir);
-    } catch (Exception e) {
-      logger.info("Create function to AliCloud error:" + e.getMessage());
+  public void CreateFunction(String functionName, String codeURI, String runTimeEnvir) throws IOException {
+    switch(mode) {
+      case "hcloud": {
+        try {
+          builder.Build(ProviderName.HCLOUD)
+              .CreateFunction(functionName, codeURI, runTimeEnvir);
+        } catch (Exception e) {
+          logger.info("Create function to HCloud error:" + e.getMessage());
+        }
+        break;
+      }
+      case "alicloud": {
+        try {
+          builder.Build(ProviderName.ALICLOUD)
+              .CreateFunction(functionName, codeURI, runTimeEnvir);
+        } catch (Exception e) {
+          logger.info("Create function to AliCloud error:" + e.getMessage());
+        }
+        break;
+      }
+      case "mixed": {
+        try {
+          builder.Build(ProviderName.HCLOUD)
+              .CreateFunction(functionName, codeURI, runTimeEnvir);
+        } catch (Exception e) {
+          logger.info("Create function to HCloud error:" + e.getMessage());
+        }
+
+        try {
+          builder.Build(ProviderName.ALICLOUD)
+              .CreateFunction(functionName, codeURI, runTimeEnvir);
+        } catch (Exception e) {
+          logger.info("Create function to AliCloud error:" + e.getMessage());
+        }
+        break;
+      }
+      default: {
+        try {
+          builder.Build(ProviderName.HCLOUD)
+              .CreateFunction(functionName, codeURI, runTimeEnvir);
+        } catch (Exception e) {
+          logger.info("Create function to HCloud error:" + e.getMessage());
+        }
+      }
     }
   }
 
   public String InvokeFunction(String functionName, String jsonString) {
+
     Object retVal;
-    try {
-      retVal = builder.Build(ProviderName.HCLOUD).InvokeFunction(functionName, jsonString);
-      return (String) retVal;
-    } catch (Exception e) {
-      logger.warn(e.getMessage());
-      retVal = builder.Build(ProviderName.ALICLOUD).InvokeFunction(functionName, jsonString);
-      return (String) retVal;
+    switch(mode) {
+      case "hcloud": {
+        retVal = builder.Build(ProviderName.HCLOUD).InvokeFunction(functionName, jsonString);
+        return (String) retVal;
+      }
+      case "alicloud": {
+        retVal = builder.Build(ProviderName.ALICLOUD).InvokeFunction(functionName, jsonString);
+        return (String) retVal;
+      }
+      case "mixed": {
+        try {
+          retVal = builder.Build(ProviderName.HCLOUD).InvokeFunction(functionName, jsonString);
+          return (String) retVal;
+        } catch (Exception e) {
+          logger.warn(e.getMessage());
+          retVal = builder.Build(ProviderName.ALICLOUD).InvokeFunction(functionName, jsonString);
+          return (String) retVal;
+        }
+      }
+      default: {
+        try {
+          retVal = builder.Build(ProviderName.HCLOUD).InvokeFunction(functionName, jsonString);
+          return (String) retVal;
+        } catch (Exception e) {
+          logger.warn(e.getMessage());
+          throw e;
+        }
+      }
     }
   }
 
@@ -56,7 +113,23 @@ public class ManagerServiceImpl implements ManagerService {
   }
 
   public void DeleteFunction(String functionName) {
-      builder.Build(ProviderName.ALICLOUD).DeleteFunction(functionName);
-      builder.Build(ProviderName.HCLOUD).DeleteFunction(functionName);
+    switch(mode) {
+      case "hcloud": {
+        builder.Build(ProviderName.HCLOUD).DeleteFunction(functionName);
+        break;
+      }
+      case "alicloud": {
+        builder.Build(ProviderName.ALICLOUD).DeleteFunction(functionName);
+        break;
+      }
+      case "mixed": {
+        builder.Build(ProviderName.ALICLOUD).DeleteFunction(functionName);
+        builder.Build(ProviderName.HCLOUD).DeleteFunction(functionName);
+        break;
+      }
+      default: {
+        builder.Build(ProviderName.HCLOUD).DeleteFunction(functionName);
+      }
+    }
   }
 }

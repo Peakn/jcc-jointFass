@@ -37,12 +37,12 @@ public class ApplicationServiceImpl implements ApplicationService {
       logger.error(e.getMessage());
       throw e;
     }
-    try {
-      hCloudProvider.InitWorkerLoad(s);
-    } catch (RuntimeException e) {
-      logger.error(e.getMessage());
-      throw e;
-    }
+//    try {
+//      hCloudProvider.InitWorkerLoad(s);
+//    } catch (RuntimeException e) {
+//      logger.error(e.getMessage());
+//      throw e;
+//    }
   }
 
   @Override

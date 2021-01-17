@@ -76,7 +76,7 @@ public class ManagerController {
         String time = String.valueOf(System.currentTimeMillis());
         String filePath = ROOT_FILE + "/" + time + "/";
         if(!new File(filePath).mkdirs()){
-            logger.info("Dictory Create Fail.");
+            logger.info("Directory Create Fail.");
             return null;
         }
 

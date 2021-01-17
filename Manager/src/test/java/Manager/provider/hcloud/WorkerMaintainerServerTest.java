@@ -131,7 +131,7 @@ public class WorkerMaintainerServerTest {
   @Before
   public void setUp() throws IOException, InterruptedException {
     hasChanged = new HashMap<>();
-    maintainerServer = new WorkerMaintainerServer(7777, hasChanged, new ReentrantLock());
+    maintainerServer = new WorkerMaintainerServer(7777, hasChanged, new ReentrantLock(), null);
     String serverName = InProcessServerBuilder.generateName();
     channel = ManagedChannelBuilder.forTarget("127.0.0.1:7777").usePlaintext().build();
     workerServer = InProcessServerBuilder
@@ -142,7 +142,7 @@ public class WorkerMaintainerServerTest {
       @Override
       public void run() {
         try {
-          maintainerServer.start();
+          maintainerServer.Start();
           maintainerServer.blockUntilShutdown();
         } catch (IOException | InterruptedException e) {
           logger.fatal(e.getMessage());

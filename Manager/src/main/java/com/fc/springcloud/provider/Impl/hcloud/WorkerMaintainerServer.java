@@ -1,5 +1,6 @@
 package com.fc.springcloud.provider.Impl.hcloud;
 
+import com.fc.springcloud.pojo.dto.GatewayEvent;
 import com.fc.springcloud.provider.Impl.hcloud.Worker.Status;
 import com.fc.springcloud.provider.Impl.hcloud.exception.ChannelException;
 import com.fc.springcloud.provider.Impl.hcloud.exception.InitFunctionException;
@@ -16,6 +17,7 @@ import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.concurrent.BlockingQueue;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 import java.util.concurrent.TimeUnit;
@@ -25,6 +27,8 @@ import java.util.concurrent.locks.ReadWriteLock;
 import java.util.concurrent.locks.ReentrantLock;
 import java.util.concurrent.locks.ReentrantReadWriteLock;
 import jointfaas.manager.ManagerGrpc.ManagerImplBase;
+import jointfaas.manager.ManagerOuterClass;
+import jointfaas.manager.ManagerOuterClass.CodeStartResponse;
 import jointfaas.manager.ManagerOuterClass.RegisterResponse;
 import jointfaas.manager.ManagerOuterClass.SyncRequest;
 import jointfaas.manager.ManagerOuterClass.SyncResponse;
@@ -47,6 +51,7 @@ public class WorkerMaintainerServer extends ManagerImplBase {
   private Map<String, Worker> workers;
   private Map<String, List<String>> functionWorkerMap;
   private Map<String, Boolean> hasChanged;
+  private BlockingQueue<GatewayEvent> gatewayEvents;
   private Lock hasChangedLock;
   private ReadWriteLock lock;
   private Server server;
@@ -54,7 +59,8 @@ public class WorkerMaintainerServer extends ManagerImplBase {
 
   private ExecutorService heartbeats;
 
-  public WorkerMaintainerServer(int port, Map<String, Boolean> hasChanged, Lock hasChangedLock) {
+  public WorkerMaintainerServer(int port, Map<String, Boolean> hasChanged, Lock hasChangedLock,
+      BlockingQueue<GatewayEvent> gatewayEvents) {
     this.workers = new HashMap<>();
     this.functionWorkerMap = new HashMap<>();
     this.lock = new ReentrantReadWriteLock();
@@ -62,6 +68,7 @@ public class WorkerMaintainerServer extends ManagerImplBase {
     this.heartbeats = Executors.newCachedThreadPool();
     this.hasChanged = hasChanged;
     this.hasChangedLock = hasChangedLock;
+    this.gatewayEvents = gatewayEvents;
   }
 
   public List<String> GetInstanceByFunctionName(String functionName) {
@@ -73,14 +80,14 @@ public class WorkerMaintainerServer extends ManagerImplBase {
       Map<String, List<String>> instanceByFunction = worker.getInstances();
       List<String> instances = instanceByFunction.get(functionName);
       if (instances != null) {
-       total.addAll(instances);
+        total.addAll(instances);
       }
     }
     readLock.unlock();
     return total;
   }
 
-  public void start() throws IOException {
+  public void Start() throws IOException {
     server = ServerBuilder.forPort(port)
         .addService(this)
         .build()
@@ -143,21 +150,19 @@ public class WorkerMaintainerServer extends ManagerImplBase {
         Lock writeLock = lock.writeLock();
         writeLock.lock();
         Worker worker = workers.get(workerId);
-        if (worker != null && worker.getStatus().equals(Status.UNHEALTHY)) {
-          hasChangedLock.lock();
+        hasChangedLock.lock();
+        if (worker != null) {
           for (String key : worker.getInstances().keySet()) {
             hasChanged.put(key, true);
           }
+          worker.setInstances(new HashMap<>());
           hasChangedLock.unlock();
           // the node is unhealthy, need clean up all containers' information on it
           logger.error("worker:" + workerId + "is unhealthy, clean up all containers");
-          worker.setInstances(new HashMap<>());
-        }
-        if (worker == null) {
-          logger.info("worker " + workerId +" is dead");
         }
         writeLock.unlock();
       }
+
 
       @Override
       public void onCompleted() {
@@ -174,15 +179,20 @@ public class WorkerMaintainerServer extends ManagerImplBase {
     private ReadWriteLock lock;
     private Map<String, Worker> workers;
     private String workerId;
+    private Map<String, Boolean> hasChanged;
+    private Lock hasChangedLock;
     private Boolean stop;
     private StreamObserver<HeartBeatRequest> heartBeatRequestObserver;
 
-    public HeartBeatClient(ReadWriteLock lock, Map<String, Worker> workers, String workerId) {
+    public HeartBeatClient(ReadWriteLock lock, Map<String, Worker> workers, Lock hasChangedLock,
+        Map<String, Boolean> hasChanged, String workerId) {
       this.lock = lock;
       this.conditionLock = new ReentrantLock();
       this.condition = conditionLock.newCondition();
       this.workers = workers;
       this.workerId = workerId;
+      this.hasChangedLock = hasChangedLock;
+      this.hasChanged = hasChanged;
       this.stop = false;
     }
 
@@ -209,23 +219,40 @@ public class WorkerMaintainerServer extends ManagerImplBase {
 
     @Override
     public void onError(Throwable throwable) {
-      logger.info("heartbeat onError");
-      logger.fatal(throwable);
+      logger.info(workerId + " heartbeat onError");
+      logger.info(throwable);
       this.onCompleted();
       this.stop = true;
     }
 
     @Override
     public void onCompleted() {
-      logger.info("completed");
       // change the state of the worker
-
       Lock workerLock = lock.writeLock();
       workerLock.lock();
       Worker worker = workers.get(workerId);
       worker.setStatus(Status.UNHEALTHY);
+      this.hasChangedLock.lock();
+      for (String function : worker.getInstances().keySet()) {
+        this.hasChanged.put(function, true);
+      }
+      worker.setInstances(new HashMap<>());
+      this.hasChangedLock.unlock();
       workerLock.unlock();
+      logger.warn("worker " + workerId + " has completed");
     }
+  }
+
+  @Override
+  public void coldStart(jointfaas.manager.ManagerOuterClass.CodeStartRequest request,
+      io.grpc.stub.StreamObserver<ManagerOuterClass.CodeStartResponse> responseObserver) {
+    GatewayEvent event = new GatewayEvent(request.getFunctionName(), request.getApplicationName());
+    logger.info("get event from gateway");
+    logger.info(request);
+    this.gatewayEvents.add(event);
+    responseObserver
+        .onNext(CodeStartResponse.newBuilder().setCode(CodeStartResponse.Code.OK).build());
+    responseObserver.onCompleted();
   }
 
   @Override
@@ -240,6 +267,7 @@ public class WorkerMaintainerServer extends ManagerImplBase {
     writeLock.lock();
     if (workers.get(request.getId()) != null) {
       // worker re register
+      workers.get(request.getId()).setStatus(Status.RUNNING);
       responseObserver.onNext(RegisterResponse.newBuilder()
           .setMsg("you has already registered")
           .setCode(RegisterResponse.Code.ERROR)
@@ -250,12 +278,14 @@ public class WorkerMaintainerServer extends ManagerImplBase {
       heartbeats.execute(new Runnable() {
         @Override
         public void run() {
-          ManagedChannel beatChannel = ManagedChannelBuilder.forTarget(request.getAddr()).usePlaintext()
+          ManagedChannel beatChannel = ManagedChannelBuilder.forTarget(request.getAddr())
+              .usePlaintext()
               .build();
           worker.setHeartbeatChannel(beatChannel);
           String workerId = new String(request.getId());
           WorkerStub heartBeatClient = WorkerGrpc.newStub(beatChannel);
-          HeartBeatClient hbc = new HeartBeatClient(lock, workers, workerId);
+          HeartBeatClient hbc = new HeartBeatClient(lock, workers, hasChangedLock, hasChanged,
+              workerId);
           StreamObserver<HeartBeatRequest> heartBeatRequestObserver = heartBeatClient
               .getHeartBeat(hbc);
           hbc.setHeartBeatRequestObserver(heartBeatRequestObserver);
@@ -335,7 +365,16 @@ public class WorkerMaintainerServer extends ManagerImplBase {
   }
 
   public boolean hasWorker() {
-    return !workers.isEmpty();
+    if (workers.isEmpty()) {
+      return false;
+    }
+    for (Worker worker : workers.values()
+    ) {
+      if (worker.getStatus().equals(Status.RUNNING)) {
+        return true;
+      }
+    }
+    return false;
   }
 
   private Worker chooseWorker(Resource resource) {
@@ -345,6 +384,9 @@ public class WorkerMaintainerServer extends ManagerImplBase {
     Integer lowerBound = 99999;
     for (String workerId : this.workers.keySet()) {
       Worker worker = this.workers.get(workerId);
+      if (worker.getStatus().equals(Status.UNHEALTHY)) {
+        continue;
+      }
       Integer total = worker.GetTotalInstances();
       if (total < lowerBound) {
         target = worker;
@@ -354,18 +396,21 @@ public class WorkerMaintainerServer extends ManagerImplBase {
     return target;
   }
 
-  public void CreateInstance(Resource resource) {
+  public void CreateInstance(Resource resource, Integer targetNum) {
     if (!hasWorker()) {
       logger.warn("there are no workers");
       throw new NoWorkerException("there are no workers");
     }
-
+    int increaseNum = targetNum - this.GetInstanceByFunctionName(resource.funcName).size();
+    logger.info("increase function: " + resource.funcName + " with result " + increaseNum);
     // choose the first one now, here we can add policy to choose
-    Worker target = chooseWorker(resource);
-    if (target != null && target.getStatus().equals(Status.RUNNING)) {
-      target.initFunction(resource.funcName, resource.image, resource.runtime, resource.codeURI,
-          resource.memorySize, resource.timeout);
-      target.CreateContainer(resource);
+    for (int i = 0; i < increaseNum; ++i) {
+      Worker target = chooseWorker(resource);
+      if (target != null && target.getStatus().equals(Status.RUNNING)) {
+        target.initFunction(resource.funcName, resource.image, resource.runtime, resource.codeURI,
+            resource.memorySize, resource.timeout);
+        target.CreateContainer(resource);
+      }
     }
   }
 }

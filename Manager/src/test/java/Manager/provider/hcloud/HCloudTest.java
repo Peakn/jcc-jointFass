@@ -144,6 +144,6 @@ public class HCloudTest {
   @After
   public void tearDown() throws InterruptedException {
     channel.shutdown().awaitTermination(1, TimeUnit.SECONDS);
-    hCloudProvider.stop();
+    hCloudProvider.Stop();
   }
 }

@@ -5,8 +5,12 @@ import com.fc.springcloud.mapping.FunctionMapper;
 import com.fc.springcloud.mesh.Cluster;
 import com.fc.springcloud.mesh.MeshClient;
 import com.fc.springcloud.pojo.domain.FunctionDo;
+import com.fc.springcloud.pojo.dto.GatewayEvent;
+import com.fc.springcloud.pojo.dto.ScheduleEvent;
+import com.fc.springcloud.pojo.query.FunctionQuery;
 import com.fc.springcloud.provider.Impl.hcloud.exception.InvokeException;
 import com.fc.springcloud.provider.Impl.hcloud.exception.InvokeFunctionException;
+import com.fc.springcloud.provider.Impl.hcloud.exception.WorkerNotFoundException;
 import com.fc.springcloud.provider.PlatformProvider;
 import java.io.IOException;
 import java.util.HashMap;
@@ -51,7 +55,7 @@ public class HCloudProvider implements PlatformProvider {
           break;
         }
         case nodejs10: {
-          image = nodejs10_RUNTIME;
+          image = NODEJS10_RUNTIME;
           break;
         }
         default: {
@@ -67,6 +71,34 @@ public class HCloudProvider implements PlatformProvider {
     }
   }
 
+  private class ScheduleEventHandler implements Runnable {
+
+    private final Log logger = LogFactory.getLog(ScheduleEventHandler.class);
+    private final ScheduleEvent event;
+
+    ScheduleEventHandler(ScheduleEvent event) {
+      this.event = event;
+    }
+
+    @Override
+    public void run() {
+      switch (event.getAction()) {
+        case create: {
+          try {
+            CreateContainer(event.getFunctionName(), event.getTarget());
+          } catch (Exception e) {
+            logger.error(e);
+          }
+          break;
+        }
+        case delete: {
+          // todo deleteContainer
+          logger.info("receive delete event:" + event);
+        }
+      }
+    }
+  }
+
   private static final Log logger = LogFactory.getLog(HCloudProvider.class);
 
   private ReadWriteLock readWriteLock;
@@ -77,10 +109,13 @@ public class HCloudProvider implements PlatformProvider {
   private Map<String, Boolean> clusterHasChanged;
   private Lock hasChangedLock;
   private ExecutorService backend;
+  private Scheduler scheduler;
+  private BlockingQueue<ScheduleEvent> scheduleEvents;
+  private BlockingQueue<GatewayEvent> gatewayEvents;
 
-  String JAVA_RUNTIME = "registry.cn-shanghai.aliyuncs.com/jointfaas-serverless/env-java:v1.0";
-  String PYTHON_RUNTIME = "registry.cn-shanghai.aliyuncs.com/jointfaas-serverless/env-python:v2.0";
-  String nodejs10_RUNTIME = "registry.cn-shanghai.aliyuncs.com/jointfaas-serverless/env-javascript:v1.0";
+  private final String JAVA_RUNTIME = "registry.cn-shanghai.aliyuncs.com/jointfaas-serverless/env-java:v1.0";
+  private final String PYTHON_RUNTIME = "registry.cn-shanghai.aliyuncs.com/jointfaas-serverless/env-python:v2.0";
+  private final String NODEJS10_RUNTIME = "registry.cn-shanghai.aliyuncs.com/jointfaas-serverless/env-javascript:v3.0";
 
   @Autowired
   private MeshClient meshInjector;
@@ -97,26 +132,41 @@ public class HCloudProvider implements PlatformProvider {
   @Value("${server.port}")
   private String serverPort;
 
+  @Autowired
+  private PrometheusResource prometheusResource;
+
   public HCloudProvider() {
     this.functions = new FunctionManager();
     this.readWriteLock = new ReentrantReadWriteLock();
     this.clusterHasChanged = new HashMap<>();
     this.hasChangedLock = new ReentrantLock();
+    this.gatewayEvents = new ArrayBlockingQueue<GatewayEvent>(100);
     this.workerMaintainer = new WorkerMaintainerServer(30347, this.clusterHasChanged,
-        this.hasChangedLock);
-    this.backend = Executors.newFixedThreadPool(3);
+        this.hasChangedLock, this.gatewayEvents);
+    this.backend = Executors.newFixedThreadPool(4);
     this.clusterSyncCollection = new HashMap<>();
     this.clusterSyncCollectionLock = new ReentrantLock();
+    this.scheduleEvents = new ArrayBlockingQueue<ScheduleEvent>(100);
   }
 
-  public void start() {
+  public void Start() {
+    // todo re-create function from the database
+    List<FunctionDo> functions = this.functionMapper.listFunctionByPages(new FunctionQuery());
+    for (FunctionDo func : functions) {
+      CreateFunction(func.getFunctionName(),
+          "http://" + serverAddress + ":" + serverPort + "/functionFile/" + func.getFunctionId(),
+          func.getRunEnv().getDisplayName());
+    }
+    this.scheduler = new Scheduler(this.prometheusResource.Register(), this.scheduleEvents,
+        this.gatewayEvents, this);
+    this.prometheusResource.Start();
     logger.info("hcloud provider start");
     // for connection with workers
     backend.execute(new Runnable() {
       @Override
       public void run() {
         try {
-          workerMaintainer.start();
+          workerMaintainer.Start();
           workerMaintainer.blockUntilShutdown();
         } catch (IOException | InterruptedException e) {
           logger.fatal("worker maintainer err:" + e.getMessage());
@@ -151,16 +201,33 @@ public class HCloudProvider implements PlatformProvider {
             }
             clusterHasChanged.clear();
             hasChangedLock.unlock();
-            Thread.sleep(1000);
+            Thread.sleep(100);
           }
         }
       });
     }
 
     // todo for auto scaling
+    if (config.meshEnable) {
+      scheduler.Start();
+    }
+
+    if (config.meshEnable) {
+      backend.execute(new Runnable() {
+        @SneakyThrows
+        @Override
+        public void run() {
+          ExecutorService workerPool = Executors.newCachedThreadPool();
+          while (true) {
+            ScheduleEvent event = scheduleEvents.take();
+            workerPool.execute(new ScheduleEventHandler(event));
+          }
+        }
+      });
+    }
   }
 
-  public void stop() throws InterruptedException {
+  public void Stop() throws InterruptedException {
     this.workerMaintainer.stop();
   }
 
@@ -236,7 +303,7 @@ public class HCloudProvider implements PlatformProvider {
     return null;
   }
 
-  private void CreateContainer(String funcName) {
+  public void CreateContainer(String funcName, Integer targetNum) {
     // find a resource
     Lock lock = readWriteLock.readLock();
     lock.lock();
@@ -244,13 +311,17 @@ public class HCloudProvider implements PlatformProvider {
     if (resource == null) {
       throw new RuntimeException("function " + funcName + " resource not found");
     }
-    this.workerMaintainer.CreateInstance(resource);
     lock.unlock();
+    try {
+      this.workerMaintainer.CreateInstance(resource, targetNum);
+    } catch (WorkerNotFoundException e) {
+      logger.warn(e);
+    }
   }
 
   public void InitWorkerLoad(List<String> steps) {
     for (String funcName : steps) {
-      this.CreateContainer(funcName);
+      this.CreateContainer(funcName, 1);
     }
   }
 }

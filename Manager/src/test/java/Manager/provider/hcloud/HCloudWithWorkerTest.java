@@ -138,6 +138,6 @@ public class HCloudWithWorkerTest {
 
   @After
   public void tearDown() throws InterruptedException {
-    hCloudProvider.stop();
+    hCloudProvider.Stop();
   }
 }

@@ -99,7 +99,7 @@ public class Worker {
         .createContainer(CreateContainerRequest.newBuilder()
             .setFuncName(resource.funcName)
             .build());
-    logger.info(resp);
+    logger.info("create container with function:" + resource.funcName);
   }
 
   public Integer AggregateInstancesByFunctionName() {
