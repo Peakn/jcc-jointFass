@@ -69,7 +69,6 @@ public class PrometheusResource {
         Gson gson = new Gson();
         PrometheusResponse requestResult = gson
             .fromJson(responseBody.string(), PrometheusResponse.class);
-        logger.info(requestResult);
         if (requestResult != null && requestResult.getStatus().equals("success")) {
           for (MetricsResult result : requestResult.getData().getResult()) {
             String functionName = result.getMetric().getString("function");

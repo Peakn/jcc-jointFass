@@ -156,10 +156,10 @@ public class WorkerMaintainerServer extends ManagerImplBase {
             hasChanged.put(key, true);
           }
           worker.setInstances(new HashMap<>());
-          hasChangedLock.unlock();
           // the node is unhealthy, need clean up all containers' information on it
           logger.error("worker:" + workerId + "is unhealthy, clean up all containers");
         }
+        hasChangedLock.unlock();
         writeLock.unlock();
       }
 
@@ -173,7 +173,7 @@ public class WorkerMaintainerServer extends ManagerImplBase {
 
   @Setter
   static class HeartBeatClient implements StreamObserver<HeartBeatResponse> {
-
+    private static final Log logger = LogFactory.getLog(HeartBeatClient.class);
     private Condition condition;
     private Lock conditionLock;
     private ReadWriteLock lock;
@@ -221,24 +221,37 @@ public class WorkerMaintainerServer extends ManagerImplBase {
     public void onError(Throwable throwable) {
       logger.info(workerId + " heartbeat onError");
       logger.info(throwable);
-      this.onCompleted();
+      this.hasChangedLock.lock();
+      Lock workerLock = lock.writeLock();
+      workerLock.lock();
+      Worker worker = workers.get(workerId);
+      worker.setStatus(Status.UNHEALTHY);
+      for (String function : worker.getInstances().keySet()) {
+        this.hasChanged.put(function, true);
+      }
+      worker.setInstances(new HashMap<>());
+      workerLock.unlock();
+      this.hasChangedLock.unlock();
+      logger.warn("worker " + workerId + " has completed");
+      heartBeatRequestObserver.onCompleted();
       this.stop = true;
     }
 
     @Override
     public void onCompleted() {
       // change the state of the worker
-      Lock workerLock = lock.writeLock();
-      workerLock.lock();
-      Worker worker = workers.get(workerId);
-      worker.setStatus(Status.UNHEALTHY);
-      this.hasChangedLock.lock();
-      for (String function : worker.getInstances().keySet()) {
-        this.hasChanged.put(function, true);
-      }
-      worker.setInstances(new HashMap<>());
-      this.hasChangedLock.unlock();
-      workerLock.unlock();
+//      Lock workerLock = lock.writeLock();
+//      workerLock.lock();
+//      Worker worker = workers.get(workerId);
+//      worker.setStatus(Status.UNHEALTHY);
+//      this.hasChangedLock.lock();
+//      for (String function : worker.getInstances().keySet()) {
+//        this.hasChanged.put(function, true);
+//      }
+//      worker.setInstances(new HashMap<>());
+//      this.hasChangedLock.unlock();
+//      logger.info("hasChanged unlock at heartBeat onCompleted");
+//      workerLock.unlock();
       logger.warn("worker " + workerId + " has completed");
     }
   }
@@ -267,10 +280,30 @@ public class WorkerMaintainerServer extends ManagerImplBase {
     writeLock.lock();
     if (workers.get(request.getId()) != null) {
       // worker re register
+      Worker oldWorker = workers.get(request.getId());
       workers.get(request.getId()).setStatus(Status.RUNNING);
+      logger.info("request worker id:" + request.getId());
+      heartbeats.execute(new Runnable() {
+        @Override
+        public void run() {
+          ManagedChannel beatChannel = ManagedChannelBuilder.forTarget(request.getAddr())
+              .usePlaintext()
+              .build();
+          oldWorker.getHeartbeatChannel().shutdownNow();
+          oldWorker.setHeartbeatChannel(beatChannel);
+          String workerId = new String(request.getId());
+          WorkerStub heartBeatClient = WorkerGrpc.newStub(beatChannel);
+          HeartBeatClient hbc = new HeartBeatClient(lock, workers, hasChangedLock, hasChanged,
+              workerId);
+          StreamObserver<HeartBeatRequest> heartBeatRequestObserver = heartBeatClient
+              .getHeartBeat(hbc);
+          hbc.setHeartBeatRequestObserver(heartBeatRequestObserver);
+          hbc.start();
+        }
+      });
       responseObserver.onNext(RegisterResponse.newBuilder()
           .setMsg("you has already registered")
-          .setCode(RegisterResponse.Code.ERROR)
+          .setCode(RegisterResponse.Code.OK)
           .build());
     } else {
       workers.put(request.getId(), worker);
@@ -385,6 +418,7 @@ public class WorkerMaintainerServer extends ManagerImplBase {
     for (String workerId : this.workers.keySet()) {
       Worker worker = this.workers.get(workerId);
       if (worker.getStatus().equals(Status.UNHEALTHY)) {
+        logger.info("worker is unhealthy:" + worker);
         continue;
       }
       Integer total = worker.GetTotalInstances();

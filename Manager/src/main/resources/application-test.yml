@@ -49,7 +49,7 @@ File:
   base-dir: ./
 mesh:
   use: true
-  gatewayUrl: 202.120.40.8:30344
+  gatewayUrl: 10.0.88.1:2046
   routerPrefix: /function/
   definition: 106.15.225.249:50051
   target: 106.15.225.249:40041
