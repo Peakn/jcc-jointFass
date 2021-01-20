@@ -3,8 +3,10 @@ package com.fc.springcloud.provider.Impl.hcloud;
 import com.fc.springcloud.pojo.dto.GatewayEvent;
 import com.fc.springcloud.provider.Impl.hcloud.Worker.Status;
 import com.fc.springcloud.provider.Impl.hcloud.exception.ChannelException;
+import com.fc.springcloud.provider.Impl.hcloud.exception.CreateContainerException;
 import com.fc.springcloud.provider.Impl.hcloud.exception.InitFunctionException;
 import com.fc.springcloud.provider.Impl.hcloud.exception.InvokeException;
+import com.fc.springcloud.provider.Impl.hcloud.exception.NoRuntimeException;
 import com.fc.springcloud.provider.Impl.hcloud.exception.NoWorkerException;
 import com.fc.springcloud.provider.Impl.hcloud.exception.WorkerNotFoundException;
 import io.grpc.ManagedChannel;
@@ -18,6 +20,7 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.concurrent.BlockingQueue;
+import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 import java.util.concurrent.TimeUnit;
@@ -71,19 +74,34 @@ public class WorkerMaintainerServer extends ManagerImplBase {
     this.gatewayEvents = gatewayEvents;
   }
 
-  public List<String> GetInstanceByFunctionName(String functionName) {
-    Lock readLock = this.lock.readLock();
-    readLock.lock();
+  private Long getInstancesNumByWithPreFunctionName(String functionName) {
+    Long target = 0L;
+    for (Worker worker : this.workers.values()) {
+      target += worker.GetInstancesNumByFunctionName(functionName);
+      target += worker.GetPreInstancesByFunctionName(functionName);
+    }
+    return target;
+  }
+
+  private List<String> getInstanceByFunctionName(String functionName) {
     List<String> total = new ArrayList<>();
     for (String id : this.workers.keySet()) {
       Worker worker = this.workers.get(id);
-      Map<String, List<String>> instanceByFunction = worker.getInstances();
-      List<String> instances = instanceByFunction.get(functionName);
+      List<String> instances = worker.GetInstancesByFunctionName(functionName);
       if (instances != null) {
         total.addAll(instances);
       }
     }
+    return total;
+  }
+
+  public List<String> GetInstanceByFunctionName(String functionName) {
+    Lock readLock = this.lock.readLock();
+    readLock.lock();
+    logger.debug("lock at 99");
+    List<String> total = getInstanceByFunctionName(functionName);
     readLock.unlock();
+    logger.debug("unlock at 104");
     return total;
   }
 
@@ -127,20 +145,32 @@ public class WorkerMaintainerServer extends ManagerImplBase {
       @Override
       public void onNext(SyncRequest syncRequest) {
         logger.info("in the sync get request:" + syncRequest.toString());
+        logger.debug("in the sync 0");
         workerId = syncRequest.getWorkerId();
         Lock writeLock = lock.writeLock();
+        logger.debug("in the sync 1");
         writeLock.lock();
+        logger.debug("lock at 151");
+        logger.debug("in the sync 2");
         Worker worker = workers.get(workerId);
-        Map<String, List<String>> instanceByFunction = worker.getInstances();
-        instanceByFunction.put(syncRequest.getFunctionName(), syncRequest.getInstancesList());
+        logger.debug("in the sync 3");
+        worker.SyncInstances(syncRequest.getFunctionName(), syncRequest.getInstancesList());
+        logger.debug("in the sync 4");
         writeLock.unlock();
+        logger.debug("unlock at 160");
+        logger.debug("in the sync 5");
         hasChangedLock.lock();
+        logger.debug("in the sync 6");
         logger.info("put " + syncRequest.getFunctionName() + " has changed true");
+        logger.debug("in the sync 7");
         hasChanged.put(syncRequest.getFunctionName(), true);
+        logger.debug("in the sync 8");
         hasChangedLock.unlock();
+        logger.debug("in the sync 9");
         responseObserver.onNext(SyncResponse.newBuilder()
             .setCode(Code.OK)
             .build());
+        logger.info("in the sync 10");
       }
 
       @Override
@@ -149,6 +179,7 @@ public class WorkerMaintainerServer extends ManagerImplBase {
         logger.error(throwable.getMessage());
         Lock writeLock = lock.writeLock();
         writeLock.lock();
+        logger.debug("lock at 181");
         Worker worker = workers.get(workerId);
         hasChangedLock.lock();
         if (worker != null) {
@@ -161,6 +192,7 @@ public class WorkerMaintainerServer extends ManagerImplBase {
         }
         hasChangedLock.unlock();
         writeLock.unlock();
+        logger.debug("unlock at 195");
       }
 
 
@@ -173,6 +205,7 @@ public class WorkerMaintainerServer extends ManagerImplBase {
 
   @Setter
   static class HeartBeatClient implements StreamObserver<HeartBeatResponse> {
+
     private static final Log logger = LogFactory.getLog(HeartBeatClient.class);
     private Condition condition;
     private Lock conditionLock;
@@ -224,6 +257,7 @@ public class WorkerMaintainerServer extends ManagerImplBase {
       this.hasChangedLock.lock();
       Lock workerLock = lock.writeLock();
       workerLock.lock();
+      logger.debug("lock at 260");
       Worker worker = workers.get(workerId);
       worker.setStatus(Status.UNHEALTHY);
       for (String function : worker.getInstances().keySet()) {
@@ -231,6 +265,7 @@ public class WorkerMaintainerServer extends ManagerImplBase {
       }
       worker.setInstances(new HashMap<>());
       workerLock.unlock();
+      logger.debug("unlock at 268");
       this.hasChangedLock.unlock();
       logger.warn("worker " + workerId + " has completed");
       heartBeatRequestObserver.onCompleted();
@@ -271,17 +306,23 @@ public class WorkerMaintainerServer extends ManagerImplBase {
   @Override
   public void register(jointfaas.manager.ManagerOuterClass.RegisterRequest request,
       io.grpc.stub.StreamObserver<jointfaas.manager.ManagerOuterClass.RegisterResponse> responseObserver) {
-    Lock writeLock = lock.writeLock();
     Worker worker = new Worker();
     worker.setIdentity(request.getId());
     worker.setAddr(request.getAddr());
     worker.setChannel(ManagedChannelBuilder.forTarget(request.getAddr()).usePlaintext().build());
     worker.setInstances(new HashMap<>());
+    worker.setPreInstances(new ConcurrentHashMap<>());
+    worker.setResources(new ConcurrentHashMap<>());
+    Lock writeLock = lock.writeLock();
     writeLock.lock();
+    logger.debug("lock at 318");
     if (workers.get(request.getId()) != null) {
       // worker re register
       Worker oldWorker = workers.get(request.getId());
-      workers.get(request.getId()).setStatus(Status.RUNNING);
+      // we must clear up the preInstances map at re register.
+      oldWorker.setPreInstances(new ConcurrentHashMap<>());
+      oldWorker.setResources(new ConcurrentHashMap<>());
+      oldWorker.setStatus(Status.RUNNING);
       logger.info("request worker id:" + request.getId());
       heartbeats.execute(new Runnable() {
         @Override
@@ -333,6 +374,7 @@ public class WorkerMaintainerServer extends ManagerImplBase {
     }
     responseObserver.onCompleted();
     writeLock.unlock();
+    logger.debug("unlock at 378");
   }
 
   public byte[] invokeFunction(Resource resource, byte[] input) {
@@ -371,8 +413,7 @@ public class WorkerMaintainerServer extends ManagerImplBase {
       throw new WorkerNotFoundException("worker not found in initFunction", workerId);
     }
     try {
-      worker.initFunction(resource.funcName, resource.image, resource.runtime, resource.codeURI,
-          resource.memorySize, resource.timeout);
+      worker.initFunction(resource);
     } catch (InitFunctionException | ChannelException e) {
       logger.error(e);
       // todo handle exception
@@ -381,6 +422,7 @@ public class WorkerMaintainerServer extends ManagerImplBase {
     // write into the functionWorkerMap
     Lock writeLock = lock.writeLock();
     writeLock.lock();
+    logger.debug("lock at 426");
     List<String> workerList = functionWorkerMap.get(resource.funcName);
     if (workerList == null) {
       workerList = new ArrayList<>();
@@ -388,12 +430,15 @@ public class WorkerMaintainerServer extends ManagerImplBase {
     workerList.add(workerId);
     functionWorkerMap.put(resource.funcName, workerList);
     writeLock.unlock();
+    logger.debug("unlock at 434");
   }
 
   public void DeleteFunction(String funcName) {
     Lock writeLock = lock.writeLock();
     writeLock.lock();
+    logger.debug("lock at 440");
     functionWorkerMap.remove(funcName);
+    logger.debug("unlock at 442");
     writeLock.unlock();
   }
 
@@ -413,23 +458,26 @@ public class WorkerMaintainerServer extends ManagerImplBase {
   private Worker chooseWorker(Resource resource) {
     Lock readLock = lock.readLock();
     readLock.lock();
+    logger.debug("lock at 462");
     Worker target = null;
-    Integer lowerBound = 99999;
+    Long lowerBound = Long.MAX_VALUE;
     for (String workerId : this.workers.keySet()) {
       Worker worker = this.workers.get(workerId);
       if (worker.getStatus().equals(Status.UNHEALTHY)) {
         logger.info("worker is unhealthy:" + worker);
         continue;
       }
-      Integer total = worker.GetTotalInstances();
+      Long total = worker.GetTotalInstances();
       if (total < lowerBound) {
         target = worker;
       }
     }
     readLock.unlock();
+    logger.debug("unlock at 477");
     return target;
   }
 
+  // CreateInstance 和 DeleteInstance 下面的实现是对不齐的，这里日后做更细致的考虑。
   public void CreateInstance(Resource resource, Integer targetNum) {
     if (!hasWorker()) {
       logger.warn("there are no workers");
@@ -441,10 +489,67 @@ public class WorkerMaintainerServer extends ManagerImplBase {
     for (int i = 0; i < increaseNum; ++i) {
       Worker target = chooseWorker(resource);
       if (target != null && target.getStatus().equals(Status.RUNNING)) {
-        target.initFunction(resource.funcName, resource.image, resource.runtime, resource.codeURI,
-            resource.memorySize, resource.timeout);
-        target.CreateContainer(resource);
+        target.initFunction(resource);
+        try {
+          target.CreateContainer(resource);
+        } catch (CreateContainerException e) {
+          logger.error(e);
+        }
       }
     }
+  }
+
+  // targetNum is an absolute num of a function
+  public void DeleteInstance(Resource resource, Integer targetNum) {
+
+    Lock readLock = lock.readLock();
+    readLock.lock();
+    logger.debug("lock at 508");
+    logger.debug("delete container 2");
+    Long oldTargetNum = getInstancesNumByWithPreFunctionName(resource.funcName);
+    logger.debug("delete container 3");
+    // now at this function, we should do not care about delete negative number instances.
+    if (oldTargetNum.intValue() <= targetNum) {
+      logger.info("oldTargetNum:" + oldTargetNum);
+      logger.info("targetNum:" + targetNum);
+      logger.info("there is no need to delete instances");
+      readLock.unlock();
+      logger.debug("unlock at 518");
+      return;
+    }
+
+    long deleteNum = oldTargetNum - targetNum;
+    // todo add choose policy here
+    for (Worker worker : this.workers.values()) {
+      logger.info("worker id:" + worker.getIdentity());
+      Long size = worker.GetInstancesNumByFunctionName(resource.funcName);
+      logger.info("worker instance size:" + size);
+      size += worker.GetPreInstancesByFunctionName(resource.funcName);
+      logger.info("worker instance add pre size:" + size);
+      logger.info("deleteNum:" + deleteNum);
+      try {
+        if (deleteNum >= size) {
+          // todo fix evil logic
+          logger.debug("delete container 4");
+          if (size == 0) {
+            continue;
+          }
+          deleteNum -= size;
+          worker.DeleteContainer(resource, 0);
+          logger.debug("delete container 5");
+        } else {
+          logger.debug("delete container 8");
+          worker.DeleteContainer(resource, Math.toIntExact(size - deleteNum));
+          logger.debug("delete container 9");
+          break;
+        }
+      } catch (ChannelException e) {
+        e.printStackTrace();
+      } catch (NoRuntimeException e) {
+        e.printStackTrace();
+      }
+    }
+    readLock.unlock();
+    logger.debug("unlock at 554");
   }
 }

@@ -87,12 +87,19 @@ public class HCloudProvider implements PlatformProvider {
           try {
             CreateContainer(event.getFunctionName(), event.getTarget());
           } catch (Exception e) {
-            logger.error(e);
+            logger.info("error at hcloud create container");
+            e.printStackTrace();
           }
           break;
         }
         case delete: {
           // todo deleteContainer
+          try {
+            DeleteContainer(event.getFunctionName(), event.getTarget());
+          } catch (Exception e) {
+            logger.info("error at hcloud delete container");
+            e.printStackTrace();
+          }
           logger.info("receive delete event:" + event);
         }
       }
@@ -115,7 +122,7 @@ public class HCloudProvider implements PlatformProvider {
 
   private final String JAVA_RUNTIME = "registry.cn-shanghai.aliyuncs.com/jointfaas-serverless/env-java:v1.0";
   private final String PYTHON_RUNTIME = "registry.cn-shanghai.aliyuncs.com/jointfaas-serverless/env-python:v2.0";
-  private final String NODEJS10_RUNTIME = "registry.cn-shanghai.aliyuncs.com/jointfaas-serverless/env-javascript:v3.0";
+  private final String NODEJS10_RUNTIME = "registry.cn-shanghai.aliyuncs.com/jointfaas-serverless/env-javascript:v4.0";
 
   @Autowired
   private MeshClient meshInjector;
@@ -314,6 +321,24 @@ public class HCloudProvider implements PlatformProvider {
     lock.unlock();
     try {
       this.workerMaintainer.CreateInstance(resource, targetNum);
+    } catch (WorkerNotFoundException e) {
+      logger.warn(e);
+    }
+  }
+
+  public void DeleteContainer(String funcName, Integer targetNum) {
+    // find a resource
+    logger.debug("delete container 0");
+    Lock lock = readWriteLock.readLock();
+    lock.lock();
+    Resource resource = this.functions.get(funcName);
+    if (resource == null) {
+      throw new RuntimeException("function " + funcName + " resource not found");
+    }
+    lock.unlock();
+    try {
+      logger.debug("delete container 1");
+      this.workerMaintainer.DeleteInstance(resource, targetNum);
     } catch (WorkerNotFoundException e) {
       logger.warn(e);
     }
