@@ -58,7 +58,10 @@ mesh:
   trace:
     host: 106.15.225.249
     port: 6832
-
+  runtime:
+    java: registry.cn-shanghai.aliyuncs.com/jointfaas-serverless/env-java:v1.0
+    python: registry.cn-shanghai.aliyuncs.com/jointfaas-serverless/env-python:v3.0
+    nodejs: registry.cn-shanghai.aliyuncs.com/jointfaas-serverless/env-javascript:v4.0
 aliyun:
   service:
     REGION: cn-hangzhou

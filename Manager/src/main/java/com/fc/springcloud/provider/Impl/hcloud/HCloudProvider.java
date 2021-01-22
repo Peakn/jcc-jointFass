@@ -120,9 +120,14 @@ public class HCloudProvider implements PlatformProvider {
   private BlockingQueue<ScheduleEvent> scheduleEvents;
   private BlockingQueue<GatewayEvent> gatewayEvents;
 
-  private final String JAVA_RUNTIME = "registry.cn-shanghai.aliyuncs.com/jointfaas-serverless/env-java:v1.0";
-  private final String PYTHON_RUNTIME = "registry.cn-shanghai.aliyuncs.com/jointfaas-serverless/env-python:v2.0";
-  private final String NODEJS10_RUNTIME = "registry.cn-shanghai.aliyuncs.com/jointfaas-serverless/env-javascript:v4.0";
+  @Value("${mesh.runtime.java:registry.cn-shanghai.aliyuncs.com/jointfaas-serverless/env-java:v1.0}")
+  private String JAVA_RUNTIME;
+
+  @Value("${mesh.runtime.python:registry.cn-shanghai.aliyuncs.com/jointfaas-serverless/env-python:v3.0}")
+  private String PYTHON_RUNTIME;
+
+  @Value("${mesh.runtime.nodejs:registry.cn-shanghai.aliyuncs.com/jointfaas-serverless/env-javascript:v4.0}")
+  private String NODEJS10_RUNTIME;
 
   @Autowired
   private MeshClient meshInjector;
