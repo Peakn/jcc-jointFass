@@ -103,12 +103,14 @@ public class Scheduler {
       Application application = this.provider.getMeshInjector()
           .getApplication(event.getApplicationName());
       List<ScheduleEvent> events = new ArrayList<>();
-      for (Step step : application.getStepChainsList()) {
-        ScheduleEvent scheduleEvent = new ScheduleEvent();
-        scheduleEvent.setAction(ScheduleAction.create);
-        scheduleEvent.setFunctionName(step.getFunctionName());
-        scheduleEvent.setTarget(1);
-        events.add(scheduleEvent);
+      for (Step step : application.getStepsMap().values()) {
+        if (step.getFunction() != null) {
+          ScheduleEvent scheduleEvent = new ScheduleEvent();
+          scheduleEvent.setAction(ScheduleAction.create);
+          scheduleEvent.setFunctionName(step.getFunction().getFunctionName());
+          scheduleEvent.setTarget(1);
+          events.add(scheduleEvent);
+        }
       }
       this.scheduleEvents.addAll(events);
     } catch (RuntimeException e) {

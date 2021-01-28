@@ -20,7 +20,12 @@ public class ApplicationController {
 
   @RequestMapping(value = "/", method = { RequestMethod.POST, RequestMethod.OPTIONS }, produces = "application/json;charset=UTF-8")
   public ResponseEntity<?> Create(@RequestBody ApplicationDto request) {
-    applicationService.CreateApplication(request.getName(), request.getStepChains());
+    try {
+      System.out.println(request.toString());
+      applicationService.CreateApplication(request.getName(), request.getEntryStep(), request.getSteps());
+    } catch (Exception e) {
+      return new ResponseEntity<>(HttpStatus.INTERNAL_SERVER_ERROR);
+    }
     return new ResponseEntity<>(HttpStatus.OK);
   }
 

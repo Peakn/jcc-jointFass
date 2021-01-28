@@ -3,6 +3,7 @@ package com.fc.springcloud.mesh;
 import com.alibaba.fastjson.JSONObject;
 import com.fc.springcloud.enums.RunEnvEnum;
 import com.fc.springcloud.mesh.exception.NotImplementedException;
+import com.fc.springcloud.pojo.dto.ApplicationDto.StepDto;
 import com.fc.springcloud.util.ZipUtil;
 import io.grpc.ManagedChannel;
 import io.grpc.ManagedChannelBuilder;
@@ -13,9 +14,7 @@ import java.io.IOException;
 import java.net.URL;
 import java.nio.file.Files;
 import java.nio.file.Paths;
-import java.util.ArrayList;
 import java.util.HashMap;
-import java.util.List;
 import java.util.Map;
 import java.util.concurrent.BlockingQueue;
 import java.util.concurrent.ExecutorService;
@@ -32,14 +31,11 @@ import jointfaas.mesh.definition.Definition.FunctionSpec;
 import jointfaas.mesh.definition.Definition.GetApplicationRequest;
 import jointfaas.mesh.definition.Definition.GetApplicationResponse;
 import jointfaas.mesh.definition.Definition.StatusCode;
-import jointfaas.mesh.definition.Definition.UpdateApplicationRequest;
-import jointfaas.mesh.definition.Definition.UpdateApplicationResponse;
 import jointfaas.mesh.definition.Definition.UpdateFunctionRequest;
 import jointfaas.mesh.definition.Definition.UpdateFunctionResponse;
 import jointfaas.mesh.definition.DefinitionServerGrpc;
 import jointfaas.mesh.definition.DefinitionServerGrpc.DefinitionServerBlockingStub;
 import jointfaas.mesh.definition.DefinitionServerGrpc.DefinitionServerStub;
-import jointfaas.mesh.model.Model;
 import jointfaas.mesh.model.Model.Application;
 import jointfaas.mesh.model.Model.Info;
 import jointfaas.mesh.model.Model.Method;
@@ -315,10 +311,10 @@ public class MeshClient {
     env.put("POLICY", "simple"); // todo hard code
   }
 
-  public void createApplication(String applicationName, List<String> rawSteps) {
-    List<Model.Step> steps = new ArrayList<>();
-    for (String step : rawSteps) {
-      steps.add(Step.newBuilder().setFunctionName(step).build());
+  public void createApplication(String applicationName, String entryStep, Map<String, StepDto> rawSteps) {
+    Map<String, Step> steps = new HashMap<>();
+    for (StepDto s : rawSteps.values()) {
+      steps.put(s.getStepName(), s.ToStep());
     }
     ManagedChannel channel = ManagedChannelBuilder.forTarget(definition).usePlaintext()
         .build();
@@ -329,7 +325,8 @@ public class MeshClient {
             .setApplicationSpec(ApplicationSpec.newBuilder()
                 .setApplication(Application.newBuilder()
                     .setName(applicationName)
-                    .addAllStepChains(steps)
+                    .setEntryStep(entryStep)
+                    .putAllSteps(steps)
                     .build())
                 .build())
             .build());
@@ -374,30 +371,30 @@ public class MeshClient {
     channel.shutdown();
   }
 
-  public void updateApplication(String applicationName, List<String> rawSteps) {
-    List<Model.Step> steps = new ArrayList<>();
-    for (String step : rawSteps) {
-      steps.add(Step.newBuilder().setFunctionName(step).build());
-    }
-    ManagedChannel channel = ManagedChannelBuilder.forTarget(definition).usePlaintext()
-        .build();
-    DefinitionServerBlockingStub client = DefinitionServerGrpc
-        .newBlockingStub(channel);
-    UpdateApplicationResponse resp = client
-        .updateApplication(UpdateApplicationRequest.newBuilder()
-            .setApplicationSpec(ApplicationSpec.newBuilder()
-                .setApplication(Application.newBuilder()
-                    .setName(applicationName)
-                    .addAllStepChains(steps)
-                    .build())
-                .build())
-            .build());
-    if (!resp.getStatusCode().equals(StatusCode.OK)) {
-      channel.shutdown();
-      throw new RuntimeException(resp.getMsg());
-    }
-    channel.shutdown();
-  }
+//  public void updateApplication(String applicationName, List<String> rawSteps) {
+//    List<Model.Step> steps = new ArrayList<>();
+//    for (String step : rawSteps) {
+//      steps.add(Step.newBuilder().setFunctionName(step).build());
+//    }
+//    ManagedChannel channel = ManagedChannelBuilder.forTarget(definition).usePlaintext()
+//        .build();
+//    DefinitionServerBlockingStub client = DefinitionServerGrpc
+//        .newBlockingStub(channel);
+//    UpdateApplicationResponse resp = client
+//        .updateApplication(UpdateApplicationRequest.newBuilder()
+//            .setApplicationSpec(ApplicationSpec.newBuilder()
+//                .setApplication(Application.newBuilder()
+//                    .setName(applicationName)
+//                    .addAllStepChains(steps)
+//                    .build())
+//                .build())
+//            .build());
+//    if (!resp.getStatusCode().equals(StatusCode.OK)) {
+//      channel.shutdown();
+//      throw new RuntimeException(resp.getMsg());
+//    }
+//    channel.shutdown();
+//  }
 
   public void createFunctionInMesh(String name, String method) {
     ManagedChannel channel = ManagedChannelBuilder.forTarget(definition).usePlaintext()

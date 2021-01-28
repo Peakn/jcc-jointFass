@@ -5,8 +5,8 @@ import com.fc.springcloud.pojo.dto.ApplicationDto;
 import com.fc.springcloud.pojo.dto.ApplicationDto.StepDto;
 import com.fc.springcloud.provider.Impl.hcloud.HCloudProvider;
 import com.fc.springcloud.service.ApplicationService;
-import java.util.ArrayList;
 import java.util.List;
+import java.util.Map;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -26,15 +26,12 @@ public class ApplicationServiceImpl implements ApplicationService {
 
 
   @Override
-  public void CreateApplication(String name, List<StepDto> steps) {
-    List<String> s = new ArrayList<>();
-    for (StepDto step : steps) {
-      s.add(step.getFunctionName());
-    }
+  public void CreateApplication(String name, String entryStep, Map<String, StepDto> steps) {
+
     try {
-      meshClient.createApplication(name, s);
+      meshClient.createApplication(name, entryStep, steps);
     } catch (RuntimeException e) {
-      logger.error(e.getMessage());
+      e.printStackTrace();
       throw e;
     }
 //    try {
