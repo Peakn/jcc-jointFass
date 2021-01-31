@@ -27,6 +27,8 @@ public class AliyunConfig {
     @Value("${aliyun.service.ROLE}")
     private String ROLE;
 
+    public final String SERVICE_NAME = "demo";
+
     public FunctionComputeClient GetAliCloudClient(){
         Config config = new Config(REGION, accountId, accessKey, accessSecretKey, null, false);
         config.setConnectionRequestTimeoutMillis(400000);
@@ -34,6 +36,25 @@ public class AliyunConfig {
         config.setReadTimeoutMillis(400000);
         FunctionComputeClient fcClient = new FunctionComputeClient(config);
         return fcClient;
+    }
+
+    public String GetFunctionUrl(String functionName) {
+        // https://1537006230256697.cn-shanghai.fc.aliyuncs.com/2016-08-15/proxy/test/v2_nodejs_A/
+        StringBuilder builder = new StringBuilder();
+        builder.append("https://");
+        builder.append(accountId);
+        builder.append(".");
+        builder.append(REGION);
+        builder.append(".fc.aliyuncs.com/2016-08-15/proxy/");
+        builder.append(SERVICE_NAME);
+        builder.append("/");
+        builder.append(functionName);
+        builder.append("/");
+        return builder.toString();
+    }
+
+    public String GetInternalFunctionUrl(String functionName) {
+        return "";
     }
 
     @Bean

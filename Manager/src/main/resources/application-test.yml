@@ -1,4 +1,4 @@
-mode: hcloud
+mode: mixed
 # hcloud means just use HCloudProvider
 # alicloud means just use AliCloudProvider
 # mixed means both HCloudProvider and AliCloudProvider are used
@@ -49,7 +49,8 @@ File:
   base-dir: ./
 mesh:
   use: true
-  gatewayUrl: 10.0.88.1:2046
+  internalGatewayLocation: 10.0.88.1:2046
+  externalGatewayLocation: 202.120.40.8:30344
   routerPrefix: /function/
   definition: 106.15.225.249:50051
   target: 106.15.225.249:40041

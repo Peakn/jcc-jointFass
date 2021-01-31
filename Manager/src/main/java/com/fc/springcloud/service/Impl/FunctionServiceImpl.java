@@ -225,8 +225,8 @@ public class FunctionServiceImpl implements FunctionService {
       functionDo.setCodeSize(file.length());
       functionDo.setRunEnv(RunEnvEnum.valueOf(functionDto.getRunEnv()));
       this.saveFunction(functionDo);
-      String path = "http://" + serverAddress + ":" + serverPort + "/functionFile/" + functionId;
-      managerService.CreateFunction(functionDo.getFunctionName(), path, functionDto.getRunEnv());
+      String url = "http://" + serverAddress + ":" + serverPort + "/functionFile/" + functionId;
+      managerService.CreateFunction(functionDto, url);
       FileUtil.del(filePath);
       return ResponseEntity.status(HttpStatus.OK).body(Result.success(returnFile));
     } catch (Exception ex) {

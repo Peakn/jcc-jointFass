@@ -31,8 +31,6 @@ public class ManagerController {
                                  @RequestParam MultipartFile file) throws IOException{
         String filePath = uploadFile(file);
         logger.info(filePath);
-        if(filePath != null)
-            managerService.CreateFunction(functionName, filePath, runEnv);
         return "Create Function Fail. File Upload Fail.";
     }
 

@@ -8,8 +8,11 @@ public class HCloudConfig {
     @Value("${mesh.use}")
     public Boolean meshEnable;
 
-    @Value("${mesh.gatewayUrl}")
-    public String gatewayUrl;
+    @Value("${mesh.externalGatewayLocation}")
+    public String externalGatewayLocation;
+
+    @Value("${mesh.internalGatewayLocation}")
+    public String internalGatewayLocation;
 
     @Value("${mesh.routerPrefix}")
     public String routerPrefix;

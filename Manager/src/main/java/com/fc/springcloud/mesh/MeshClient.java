@@ -14,11 +14,14 @@ import java.io.IOException;
 import java.net.URL;
 import java.nio.file.Files;
 import java.nio.file.Paths;
+import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.Map;
 import java.util.concurrent.BlockingQueue;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
+import java.util.concurrent.locks.Lock;
+import java.util.concurrent.locks.ReentrantLock;
 import jointfaas.mesh.definition.Definition.ApplicationSpec;
 import jointfaas.mesh.definition.Definition.CreateApplicationRequest;
 import jointfaas.mesh.definition.Definition.CreateApplicationResponse;
@@ -58,7 +61,9 @@ public class MeshClient {
 
   private final ExecutorService functionInfoUpdate;
 
-  private Map<String, UpdateFunctionClient> ufcCollection;
+  private Map<String, Map<String, UpdateFunctionClient>> ufcCollection;
+
+  private Lock lock = new ReentrantLock();
 
   @Value("${mesh.target}")
   String target;
@@ -92,23 +97,28 @@ public class MeshClient {
     private BlockingQueue<Cluster> clusterUpstream;
     private StreamObserver<UpdateFunctionRequest> updateFunctionRequestObserver;
     private ExecutorService collectionThreads;
+    private String provider;
 
     public UpdateFunctionClient(String functionName, String internalUrl, String url,
-        BlockingQueue<Float> priceUpstream, BlockingQueue<Cluster> clusterUpstream) {
+        BlockingQueue<Float> priceUpstream, BlockingQueue<Cluster> clusterUpstream,
+        String provider) {
       this.functionName = functionName;
       this.url = url;
       this.internalUrl = internalUrl;
       this.priceUpstream = priceUpstream;
       this.clusterUpstream = clusterUpstream;
       this.stop = false;
+      this.cluster = new Cluster(new ArrayList<>(), provider, functionName);
       this.price = 0.0f;
       this.collectionThreads = Executors.newFixedThreadPool(3);
+      this.provider = provider;
     }
 
     public void start() {
       // start info collection thread
       logger.info("start info collection thread to sync");
       if (priceUpstream != null) {
+        logger.info("price upstream start");
         // start price collection
         collectionThreads.execute(new Runnable() {
           @SneakyThrows
@@ -139,38 +149,43 @@ public class MeshClient {
       if (priceUpstream == null && clusterUpstream == null) {
         return;
       }
+
       collectionThreads.execute(new Runnable() {
         @SneakyThrows
         @Override
         public void run() {
           String hash = "";
+          Float lastPrice =  null;
+          Cluster lastCluster = null;
           while (true) {
-            if (cluster != null) {
-              if (hash.equals(cluster.toString())) {
+              if (hash.equals(cluster.toString()) && price.equals(lastPrice)) {
                 Thread.sleep(100);
                 continue;
               }
               hash = cluster.toString();
+              lastPrice = price;
+              lastCluster = new Cluster(cluster);
               logger.info("update cluster:" + cluster.toString());
+              logger.info("update price:" + lastPrice);
               UpdateFunctionRequest req = UpdateFunctionRequest.newBuilder()
                   .setFunctionSpec(FunctionSpec.newBuilder()
                       .setName(functionName).
                           setInfo(Info.newBuilder()
                               .setInternalUrl(internalUrl)
-                              .setPrice(price)
+                              .setPrice(lastPrice)
                               .setUrl(url)
-                              .addAllInstances(cluster.instances)
+                              .addAllInstances(lastCluster.instances)
                               .build())
-                      .setProvider(cluster.provider)
+                      .setProvider(provider)
                       .build())
                   .build();
               updateFunctionRequestObserver.onNext(req);
-            }
             Thread.sleep(100);
           }
         }
       });
     }
+
 
     @SneakyThrows
     @Override
@@ -190,17 +205,22 @@ public class MeshClient {
   }
 
   public void syncFunctionInfo(String functionName, String internalUrl, String url,
-      BlockingQueue<Float> priceUpstream, BlockingQueue<Cluster> clusterUpstream) {
+      BlockingQueue<Float> priceUpstream, BlockingQueue<Cluster> clusterUpstream,
+      String provider) {
     ManagedChannel channel = ManagedChannelBuilder.forTarget(definition).usePlaintext()
         .build();
     DefinitionServerStub client = DefinitionServerGrpc.newStub(channel);
     UpdateFunctionClient ufc = new UpdateFunctionClient(functionName, internalUrl, url,
-        priceUpstream, clusterUpstream);
+        priceUpstream, clusterUpstream, provider);
     StreamObserver<UpdateFunctionRequest> updateFunctionRequestStreamObserver = client
         .updateFunction(ufc);
     ufc.setChannel(channel);
     ufc.setUpdateFunctionRequestObserver(updateFunctionRequestStreamObserver);
-    ufcCollection.put(functionName, ufc);
+    lock.lock();
+    Map<String, UpdateFunctionClient> providerCollection = ufcCollection
+        .computeIfAbsent(provider, k -> new HashMap<>());
+    providerCollection.put(functionName, ufc);
+    lock.unlock();
     ufc.start();
   }
 
@@ -212,7 +232,7 @@ public class MeshClient {
     return "index_mesh.handler";
   }
 
-  public byte[] injectMesh(String functionName, RunEnvEnum runtime, String codeURL)
+  public byte[] injectMesh(String functionName, RunEnvEnum runtime, String codeURL, String provider)
       throws IOException {
     logger.info(codeURL);
     URL resourceURL = new URL(codeURL);
@@ -248,8 +268,7 @@ public class MeshClient {
     }
     File result = injectRuntime(resourceCode, new URL(envCodeURI));
     logger.info("inject mesh step 3");
-    String applicationName = getApplicationNameByFunctionName(functionName);
-    result = injectConfig(result, applicationName);
+    result = injectConfig(result, provider);
     logger.info("inject mesh step 4");
     return Files.readAllBytes(Paths.get(result.getPath()));
   }
@@ -311,7 +330,8 @@ public class MeshClient {
     env.put("POLICY", "simple"); // todo hard code
   }
 
-  public void createApplication(String applicationName, String entryStep, Map<String, StepDto> rawSteps) {
+  public void createApplication(String applicationName, String entryStep,
+      Map<String, StepDto> rawSteps) {
     Map<String, Step> steps = new HashMap<>();
     for (StepDto s : rawSteps.values()) {
       steps.put(s.getStepName(), s.ToStep());
@@ -353,7 +373,6 @@ public class MeshClient {
     channel.shutdown();
     return resp.getApplicationSpec().getApplication();
   }
-
 
 
   public void deleteApplication(String applicationName) {

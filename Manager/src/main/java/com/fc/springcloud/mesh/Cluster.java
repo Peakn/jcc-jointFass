@@ -15,4 +15,10 @@ public class Cluster {
   List<String> instances;
   String provider;
   String functionName;
+
+  public Cluster(Cluster cluster) {
+    this.instances = cluster.instances;
+    this.provider = cluster.provider;
+    this.functionName = cluster.functionName;
+  }
 }

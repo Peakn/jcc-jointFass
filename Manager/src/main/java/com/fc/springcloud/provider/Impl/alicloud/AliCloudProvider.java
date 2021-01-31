@@ -34,6 +34,11 @@ import java.nio.file.Files;
 import java.nio.file.Paths;
 import java.util.HashMap;
 import java.util.Map;
+import java.util.concurrent.ArrayBlockingQueue;
+import java.util.concurrent.BlockingQueue;
+import java.util.concurrent.locks.Lock;
+import java.util.concurrent.locks.ReadWriteLock;
+import java.util.concurrent.locks.ReentrantReadWriteLock;
 import org.apache.commons.io.FileUtils;
 import org.apache.juli.logging.Log;
 import org.apache.juli.logging.LogFactory;
@@ -47,9 +52,7 @@ import org.springframework.stereotype.Component;
 public class AliCloudProvider implements PlatformProvider {
 
   private static final Log logger = LogFactory.getLog(AliCloudProvider.class);
-
-  private static final String SERVICE_NAME = "demo";
-
+  
   private static final String provider = "alicloud";
 
   @Autowired
@@ -64,9 +67,17 @@ public class AliCloudProvider implements PlatformProvider {
   @Autowired
   private MeshClient meshInjector;
 
+  private Map<String, BlockingQueue<Float>> priceSyncCollection;
+
+  private ReadWriteLock lock;
+
+  public AliCloudProvider() {
+    priceSyncCollection = new HashMap<>();
+    lock = new ReentrantReadWriteLock();
+  }
 
   public void CreateTrigger(String functionName) {
-    CreateTriggerRequest ctRequest = new CreateTriggerRequest(SERVICE_NAME, functionName);
+    CreateTriggerRequest ctRequest = new CreateTriggerRequest(config.SERVICE_NAME, functionName);
     ctRequest.setTriggerType("http");
     ctRequest.setTriggerName("http");
     HttpTriggerConfig httpTriggerConfig = new HttpTriggerConfig(HttpAuthType.ANONYMOUS,
@@ -129,10 +140,13 @@ public class AliCloudProvider implements PlatformProvider {
     // Create a function
 
       logger.info("step 1");
-      CreateFunctionRequest cfReq = new CreateFunctionRequest(SERVICE_NAME);
+      logger.info(config.SERVICE_NAME);
+      CreateFunctionRequest cfReq = new CreateFunctionRequest(config.SERVICE_NAME);
       cfReq.setFunctionName(functionName);
       cfReq.setMemorySize(128);
       cfReq.setRuntime(runTimeEnvir);
+      cfReq.setTimeout(10);
+      cfReq.setInitializationTimeout(3);
     if (config.meshEnable) {
       cfReq.setInitializer(meshInjector.injectInitializer());
       cfReq.setHandler(meshInjector.injectHandler());
@@ -141,7 +155,7 @@ public class AliCloudProvider implements PlatformProvider {
       cfReq.setEnvironmentVariables(env);
       logger.info("step 2");
       byte[] zipCode = meshInjector
-          .injectMesh(functionName, RunEnvEnum.valueOf(runTimeEnvir), codeURL);
+          .injectMesh(functionName, RunEnvEnum.valueOf(runTimeEnvir), codeURL, provider);
       Code code = new Code().setZipFile(zipCode);
       logger.info("step 3");
       cfReq.setCode(code);
@@ -161,9 +175,21 @@ public class AliCloudProvider implements PlatformProvider {
       logger.info("step 7");
       logger.info("Created function, request ID " + cfResp.getRequestId());
       logger.info("Create function at time: " + cfResp.getCreatedTime());
+      Lock writeLock = lock.writeLock();
+      writeLock.lock();
+      BlockingQueue<Float> priceStream = priceSyncCollection.get(functionName);
+      if (priceStream == null) {
+        priceStream = new ArrayBlockingQueue<>(100);
+        priceSyncCollection.put(functionName, priceStream);
+      }
+      writeLock.unlock();
+      // todo set the priceUpstream
+      meshInjector.syncFunctionInfo(functionName, config.GetInternalFunctionUrl(functionName),
+          config.GetFunctionUrl(functionName), priceStream, null, "alicloud");
+      logger.info("step 8");
     } catch (ClientException e) {
       if (e.getErrorCode().equals("ServiceNotFound")) {
-        this.CreateService(SERVICE_NAME);
+        this.CreateService(config.SERVICE_NAME);
         logger.info("The Service not exist. We have recreated service and function");
         CreateFunctionResponse cfResp = fcClient.createFunction(cfReq);
         CreateTrigger(functionName);
@@ -176,15 +202,12 @@ public class AliCloudProvider implements PlatformProvider {
                 + "\n" + e.getErrorCode());
       }
     }
-    // todo set the priceUpstream
-    meshInjector.syncFunctionInfo(functionName, parseInternalUrl(functionName, SERVICE_NAME),
-        parseUrl(functionName, SERVICE_NAME), null, null);
   }
 
   @Override
   public String InvokeFunction(String functionName, String jsonString) {
 
-    InvokeFunctionRequest invkReq = new InvokeFunctionRequest(SERVICE_NAME, functionName);
+    InvokeFunctionRequest invkReq = new InvokeFunctionRequest(config.SERVICE_NAME, functionName);
     //设置参数
 //        String payload = jsonObject.toJSONString();
     invkReq.setPayload(jsonString.getBytes());
@@ -202,7 +225,7 @@ public class AliCloudProvider implements PlatformProvider {
   @Override
   public void UpdateFunction(String functionName, String codeURL, String runTimeEnvir)
       throws IOException {
-    UpdateFunctionRequest ufReq = new UpdateFunctionRequest(SERVICE_NAME, functionName);
+    UpdateFunctionRequest ufReq = new UpdateFunctionRequest(config.SERVICE_NAME, functionName);
     ufReq.setDescription("Update Function");
 
     ufReq.setRuntime(runTimeEnvir);
@@ -215,7 +238,7 @@ public class AliCloudProvider implements PlatformProvider {
       meshInjector.injectEnv(env, provider, functionName);
       ufReq.setEnvironmentVariables(env);
       byte[] zipCode = meshInjector
-          .injectMesh(functionName, RunEnvEnum.valueOf(runTimeEnvir), codeURL);
+          .injectMesh(functionName, RunEnvEnum.valueOf(runTimeEnvir), codeURL, provider);
       Code code = new Code().setZipFile(zipCode);
       ufReq.setCode(code);
     } else {
@@ -243,7 +266,7 @@ public class AliCloudProvider implements PlatformProvider {
 
   @Override
   public void DeleteFunction(String functionName) {
-    DeleteFunctionRequest dfRep = new DeleteFunctionRequest(SERVICE_NAME, functionName);
+    DeleteFunctionRequest dfRep = new DeleteFunctionRequest(config.SERVICE_NAME, functionName);
     FunctionComputeClient fcClient = config.GetAliCloudClient();
     try {
       DeleteFunctionResponse dfResp = fcClient.deleteFunction(dfRep);
@@ -261,7 +284,7 @@ public class AliCloudProvider implements PlatformProvider {
 
   @Override
   public Object ListFunction() {
-    ListFunctionsRequest lfReq = new ListFunctionsRequest(SERVICE_NAME);
+    ListFunctionsRequest lfReq = new ListFunctionsRequest(config.SERVICE_NAME);
     FunctionComputeClient fcClient = config.GetAliCloudClient();
     ListFunctionsResponse lfResp = fcClient.listFunctions(lfReq);
     return lfResp;

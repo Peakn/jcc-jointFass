@@ -8,14 +8,14 @@ import java.io.IOException;
 import java.io.InputStream;
 import java.nio.file.Files;
 import java.nio.file.Path;
-import java.util.Arrays;
 import java.util.Enumeration;
-import java.util.Objects;
 import java.util.zip.ZipEntry;
 import java.util.zip.ZipException;
 import java.util.zip.ZipFile;
 import java.util.zip.ZipInputStream;
 import java.util.zip.ZipOutputStream;
+import net.lingala.zip4j.model.FileHeader;
+import net.lingala.zip4j.model.ZipParameters;
 import org.apache.commons.io.FileUtils;
 import org.apache.juli.logging.Log;
 import org.apache.juli.logging.LogFactory;
@@ -165,8 +165,13 @@ public class ZipUtil {
     FileUtils.copyFile(fileWrapper, result);
     Path tempDirectory = Files.createTempDirectory(resourceCode.getName());
     new net.lingala.zip4j.ZipFile(resourceCode).extractAll(tempDirectory.toString());
-    new net.lingala.zip4j.ZipFile(result).addFiles(Arrays.asList(
-        Objects.requireNonNull(tempDirectory.toFile().listFiles())));
+    ZipParameters parameters = new ZipParameters();
+    parameters.setIncludeRootFolder(true);
+    net.lingala.zip4j.ZipFile resultZip = new net.lingala.zip4j.ZipFile(result);
+    resultZip.addFolder(tempDirectory.toFile(), parameters);
+    System.out.println(tempDirectory.getFileName().toString());
+    FileHeader fileHeader = resultZip.getFileHeader(tempDirectory.getFileName().toString() + "/");
+    resultZip.renameFile(fileHeader, "index/");
     tempDirectory.toFile().delete();
     return result;
   }

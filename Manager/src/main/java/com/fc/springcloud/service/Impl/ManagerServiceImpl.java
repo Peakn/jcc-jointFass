@@ -1,5 +1,6 @@
 package com.fc.springcloud.service.Impl;
 
+import com.fc.springcloud.pojo.dto.FunctionDto;
 import com.fc.springcloud.provider.ProviderBuilder;
 import com.fc.springcloud.provider.ProviderName;
 import com.fc.springcloud.service.ManagerService;
@@ -22,12 +23,12 @@ public class ManagerServiceImpl implements ManagerService {
   @Value("${mode}")
   private String mode;
 
-  public void CreateFunction(String functionName, String codeURI, String runTimeEnvir) throws IOException {
+  public void CreateFunction(FunctionDto functionDto, String codeURI) throws IOException {
     switch(mode) {
       case "hcloud": {
         try {
           builder.Build(ProviderName.HCLOUD)
-              .CreateFunction(functionName, codeURI, runTimeEnvir);
+              .CreateFunction(functionDto.getFunctionName(), codeURI, functionDto.getRunEnv());
         } catch (Exception e) {
           logger.info("Create function to HCloud error:" + e.getMessage());
         }
@@ -36,7 +37,7 @@ public class ManagerServiceImpl implements ManagerService {
       case "alicloud": {
         try {
           builder.Build(ProviderName.ALICLOUD)
-              .CreateFunction(functionName, codeURI, runTimeEnvir);
+              .CreateFunction(functionDto.getFunctionName(), codeURI, functionDto.getRunEnv());
         } catch (Exception e) {
           logger.info("Create function to AliCloud error:" + e.getMessage());
         }
@@ -45,14 +46,14 @@ public class ManagerServiceImpl implements ManagerService {
       case "mixed": {
         try {
           builder.Build(ProviderName.HCLOUD)
-              .CreateFunction(functionName, codeURI, runTimeEnvir);
+              .CreateFunction(functionDto.getFunctionName(), codeURI, functionDto.getRunEnv());
         } catch (Exception e) {
           logger.info("Create function to HCloud error:" + e.getMessage());
         }
 
         try {
           builder.Build(ProviderName.ALICLOUD)
-              .CreateFunction(functionName, codeURI, runTimeEnvir);
+              .CreateFunction(functionDto.getFunctionName(), codeURI, functionDto.getRunEnv());
         } catch (Exception e) {
           logger.info("Create function to AliCloud error:" + e.getMessage());
         }
@@ -61,7 +62,7 @@ public class ManagerServiceImpl implements ManagerService {
       default: {
         try {
           builder.Build(ProviderName.HCLOUD)
-              .CreateFunction(functionName, codeURI, runTimeEnvir);
+              .CreateFunction(functionDto.getFunctionName(), codeURI, functionDto.getRunEnv());
         } catch (Exception e) {
           logger.info("Create function to HCloud error:" + e.getMessage());
         }

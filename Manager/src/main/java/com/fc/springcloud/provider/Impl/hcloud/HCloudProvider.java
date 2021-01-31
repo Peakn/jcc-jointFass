@@ -272,9 +272,10 @@ public class HCloudProvider implements PlatformProvider {
       logger.info("function " + funcName + "has a sync queue");
     } else {
       clusterSyncCollection.put(funcName, functionSyncQueue);
-      String url = config.gatewayUrl + config.routerPrefix + funcName;
-      meshInjector.syncFunctionInfo(funcName, "hcloud.com", url, null,
-          clusterSyncCollection.get(funcName));
+      String url = "http://"+ config.externalGatewayLocation + config.routerPrefix + funcName;
+      String internalUrl = "http://"+ config.internalGatewayLocation + config.routerPrefix + funcName;
+      meshInjector.syncFunctionInfo(funcName, internalUrl, url, null,
+          clusterSyncCollection.get(funcName), "hcloud");
     }
     clusterSyncCollectionLock.unlock();
   }

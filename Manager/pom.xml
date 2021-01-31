@@ -73,7 +73,7 @@
     <name>jcc-jointFaas-manager</name>
 
     <properties>
-        <aliyun-java-sdk-fc.version>1.8.11</aliyun-java-sdk-fc.version>
+        <aliyun-java-sdk-fc.version>1.8.15</aliyun-java-sdk-fc.version>
         <junit.version>4.12</junit.version>
         <spring-boot-starter-web.version>2.3.5.RELEASE</spring-boot-starter-web.version>
         <spring-boot-devtools.version>2.3.5.RELEASE</spring-boot-devtools.version>
