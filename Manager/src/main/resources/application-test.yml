@@ -49,7 +49,7 @@ File:
   base-dir: ./
 mesh:
   use: true
-  internalGatewayLocation: 10.0.88.1:2046
+  internalGatewayLocation: 10.0.88.4:2046
   externalGatewayLocation: 202.120.40.8:30344
   routerPrefix: /function/
   definition: 106.15.225.249:50051
@@ -62,7 +62,7 @@ mesh:
   runtime:
     java: registry.cn-shanghai.aliyuncs.com/jointfaas-serverless/env-java:v1.0
     python: registry.cn-shanghai.aliyuncs.com/jointfaas-serverless/env-python:v3.0
-    nodejs: registry.cn-shanghai.aliyuncs.com/jointfaas-serverless/env-javascript:v5.1
+    nodejs: registry.cn-shanghai.aliyuncs.com/jointfaas-serverless/env-javascript:v6.0
 aliyun:
   service:
     REGION: cn-hangzhou

@@ -26,6 +26,5 @@ message XDSResponse {
 message Instance {
   string provider = 1;
   string functionName = 2;
-  string applicationName = 3;
   string url = 4;
 }

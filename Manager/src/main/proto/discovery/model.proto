@@ -24,7 +24,6 @@ message Function {
   string name = 1;
   string method = 2;
   map<string, Info>  infos = 3;
-  string belongTo = 4;
 }
 
 message Step {

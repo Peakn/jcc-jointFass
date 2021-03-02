@@ -73,8 +73,8 @@ public class PrometheusResource {
           for (MetricsResult result : requestResult.getData().getResult()) {
             String functionName = result.getMetric().getString("function");
             Double timestamp = result.getValue().getDouble(0);
-            long value = Long.parseLong(result.getValue().getString(1));
-            this.queue.add(new MetricsEvent(functionName, (double) value,
+            double value = Double.parseDouble(result.getValue().getString(1));
+            this.queue.add(new MetricsEvent(functionName, value,
                 new Date(new Timestamp(timestamp.longValue()).getTime())));
           }
         }
