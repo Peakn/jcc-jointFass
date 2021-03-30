@@ -7,6 +7,12 @@ package mesh.definition;
 import "discovery/model.proto";
 
 service DefinitionServer {
+
+  rpc CreatePolicy(CreatePolicyRequest) returns (CreatePolicyResponse) {}
+  rpc UpdatePolicy(UpdatePolicyRequest) returns (UpdatePolicyResponse) {}
+  rpc GetPolicy(GetPolicyRequest) returns (GetPolicyResponse) {}
+  rpc DeletePolicy(DeletePolicyRequest) returns (DeletePolicyResponse) {}
+
   rpc CreateFunction(CreateFunctionRequest) returns (CreateFunctionResponse) {}
   rpc DeleteFunction(DeleteFunctionRequest) returns (DeleteFunctionResponse) {}
   rpc UpdateFunction(stream UpdateFunctionRequest) returns (stream UpdateFunctionResponse) {}
@@ -20,6 +26,42 @@ service DefinitionServer {
 enum StatusCode {
   OK = 0;
   Error = 1;
+}
+
+message CreatePolicyRequest {
+  model.Policy policy = 1;
+}
+
+message CreatePolicyResponse {
+  StatusCode statusCode = 1;
+  model.Policy policy = 2;
+}
+
+message UpdatePolicyRequest {
+  model.Policy policy = 1;
+}
+
+message UpdatePolicyResponse {
+  StatusCode statusCode = 1;
+  model.Policy policy = 2;
+}
+
+message GetPolicyRequest {
+  string name = 1;
+}
+
+message GetPolicyResponse {
+  StatusCode statusCode = 1;
+  string msg = 2;
+  model.Policy policy = 3;
+}
+
+message DeletePolicyRequest {
+  string name = 1;
+}
+
+message DeletePolicyResponse {
+  StatusCode statusCode = 1;
 }
 
 message FunctionSpec {

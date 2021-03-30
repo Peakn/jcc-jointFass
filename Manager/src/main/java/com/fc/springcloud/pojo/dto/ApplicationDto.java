@@ -179,16 +179,19 @@ public class ApplicationDto {
 
     String functionName;
     String nextStep;
+    String policy;
 
     public FunctionStepDto(FunctionStep function) {
       functionName = function.getFunctionName();
       nextStep = function.getNextStep();
+      policy = function.getPolicy();
     }
 
     public FunctionStep ToFunctionStep() {
       return FunctionStep.newBuilder()
           .setFunctionName(functionName)
           .setNextStep(nextStep)
+          .setPolicy(policy)
           .build();
     }
   }

@@ -1,11 +1,11 @@
-mode: mixed
+mode: hcloud
 # hcloud means just use HCloudProvider
 # alicloud means just use AliCloudProvider
 # mixed means both HCloudProvider and AliCloudProvider are used
 server:
   port: 30342
   address: 0.0.0.0
-  exportAddress: 10.0.0.19
+  exportAddress: 10.0.89.1
 spring:
   servlet:
     multipart:
@@ -49,7 +49,7 @@ File:
   base-dir: ./
 mesh:
   use: true
-  internalGatewayLocation: 10.0.88.4:2046
+  internalGatewayLocation: 10.0.89.3:2046
   externalGatewayLocation: 202.120.40.8:30344
   routerPrefix: /function/
   definition: 106.15.225.249:50051
@@ -62,7 +62,7 @@ mesh:
   runtime:
     java: registry.cn-shanghai.aliyuncs.com/jointfaas-serverless/env-java:v1.0
     python: registry.cn-shanghai.aliyuncs.com/jointfaas-serverless/env-python:v3.0
-    nodejs: registry.cn-shanghai.aliyuncs.com/jointfaas-serverless/env-javascript:v6.0
+    nodejs: registry.cn-shanghai.aliyuncs.com/jointfaas-serverless/env-javascript:v7.0
 aliyun:
   service:
     REGION: cn-hangzhou

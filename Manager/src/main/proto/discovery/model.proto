@@ -5,6 +5,12 @@ option java_package = "jointfaas.mesh.model";
 package mesh.model;
 
 
+message Policy {
+  string name = 1;
+  string type = 2;
+  string metaData = 3;
+}
+
 message Info {
   string url = 1;
   string internalUrl = 2;
@@ -39,6 +45,7 @@ message Step {
 message FunctionStep {
   string functionName = 2; // the original step, just run the function
   string nextStep = 3;
+  string policy = 4;
 }
 
 message ParallelStep {
