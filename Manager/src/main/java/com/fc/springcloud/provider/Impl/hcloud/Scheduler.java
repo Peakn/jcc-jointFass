@@ -100,21 +100,35 @@ public class Scheduler {
     logger.info("handle mosn");
     logger.info(event);
     try {
-      Application application = this.provider.getMeshInjector()
-          .getApplication(event.getApplicationName());
-      List<ScheduleEvent> events = new ArrayList<>();
-      for (Step step : application.getStepsMap().values()) {
-        if (step.getFunction() != null) {
-          ScheduleEvent scheduleEvent = new ScheduleEvent();
-          scheduleEvent.setAction(ScheduleAction.create);
-          scheduleEvent.setFunctionName(step.getFunction().getFunctionName());
-          scheduleEvent.setTarget(1);
-          events.add(scheduleEvent);
+      if (this.provider.getConfig().batchScale) {
+        Application application = this.provider.getMeshInjector()
+            .getApplication(event.getApplicationName());
+        List<ScheduleEvent> events = new ArrayList<>();
+        for (Step step : application.getStepsMap().values()) {
+          if (step.getFunction() != null) {
+            ScheduleEvent scheduleEvent = new ScheduleEvent();
+            scheduleEvent.setAction(ScheduleAction.create);
+            scheduleEvent.setFunctionName(step.getFunction().getFunctionName());
+            scheduleEvent.setTarget(1);
+            events.add(scheduleEvent);
+          }
         }
+        this.scheduleEvents.addAll(events);
+      } else {
+        ScheduleEvent scheduleEvent = new ScheduleEvent();
+        scheduleEvent.setAction(ScheduleAction.create);
+        scheduleEvent.setFunctionName(event.getFunctionName());
+        scheduleEvent.setTarget(1);
+        this.scheduleEvents.add(scheduleEvent);
       }
-      this.scheduleEvents.addAll(events);
     } catch (RuntimeException e) {
       logger.error(e);
+      // handle error about application is not existed
+      ScheduleEvent scheduleEvent = new ScheduleEvent();
+      scheduleEvent.setAction(ScheduleAction.create);
+      scheduleEvent.setFunctionName(event.getFunctionName());
+      scheduleEvent.setTarget(1);
+      this.scheduleEvents.add(scheduleEvent);
     }
   }
 

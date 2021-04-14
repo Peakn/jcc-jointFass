@@ -16,4 +16,7 @@ public class HCloudConfig {
 
     @Value("${mesh.routerPrefix}")
     public String routerPrefix;
+
+    @Value("${hcloud.batchScale}")
+    public Boolean batchScale;
 }

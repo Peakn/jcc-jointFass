@@ -6,6 +6,7 @@ import com.fc.springcloud.provider.Impl.hcloud.HCloudProvider;
 import com.fc.springcloud.provider.Impl.hcloud.exception.InvokeException;
 import com.fc.springcloud.provider.Impl.hcloud.exception.RuntimeEnvironmentException;
 import java.io.IOException;
+import java.util.Collections;
 import org.apache.juli.logging.Log;
 import org.apache.juli.logging.LogFactory;
 import org.junit.After;
@@ -34,7 +35,7 @@ public class HCloudWithWorkerTest {
 
     hCloudProvider = new HCloudProvider();
     meshClient = new MeshClient();
-    meshClient.setDefinition("106.15.225.249:50051");
+    meshClient.setDefinition(Collections.singletonList("106.15.225.249:50051"));
     meshClient.setTarget("106.15.225.249:40041");
     meshClient.setTracePort(6832);
     meshClient.setTraceHost("106.15.225.249");

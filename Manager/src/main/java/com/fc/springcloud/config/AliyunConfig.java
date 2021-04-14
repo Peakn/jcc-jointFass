@@ -54,7 +54,7 @@ public class AliyunConfig {
     }
 
     public String GetInternalFunctionUrl(String functionName) {
-        return "";
+        return GetFunctionUrl(functionName);
     }
 
     @Bean

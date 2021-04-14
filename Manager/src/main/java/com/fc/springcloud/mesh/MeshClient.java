@@ -4,6 +4,7 @@ import com.alibaba.fastjson.JSONObject;
 import com.fc.springcloud.enums.RunEnvEnum;
 import com.fc.springcloud.mesh.exception.NotImplementedException;
 import com.fc.springcloud.pojo.dto.ApplicationDto.StepDto;
+import com.fc.springcloud.pojo.dto.PolicyDto;
 import com.fc.springcloud.util.ZipUtil;
 import io.grpc.ManagedChannel;
 import io.grpc.ManagedChannelBuilder;
@@ -16,6 +17,7 @@ import java.nio.file.Files;
 import java.nio.file.Paths;
 import java.util.ArrayList;
 import java.util.HashMap;
+import java.util.List;
 import java.util.Map;
 import java.util.concurrent.BlockingQueue;
 import java.util.concurrent.ExecutorService;
@@ -27,15 +29,23 @@ import jointfaas.mesh.definition.Definition.CreateApplicationRequest;
 import jointfaas.mesh.definition.Definition.CreateApplicationResponse;
 import jointfaas.mesh.definition.Definition.CreateFunctionRequest;
 import jointfaas.mesh.definition.Definition.CreateFunctionResponse;
+import jointfaas.mesh.definition.Definition.CreatePolicyRequest;
+import jointfaas.mesh.definition.Definition.CreatePolicyResponse;
 import jointfaas.mesh.definition.Definition.DeleteApplicationRequest;
 import jointfaas.mesh.definition.Definition.DeleteApplicationResponse;
 import jointfaas.mesh.definition.Definition.DeleteFunctionRequest;
+import jointfaas.mesh.definition.Definition.DeletePolicyRequest;
+import jointfaas.mesh.definition.Definition.DeletePolicyResponse;
 import jointfaas.mesh.definition.Definition.FunctionSpec;
 import jointfaas.mesh.definition.Definition.GetApplicationRequest;
 import jointfaas.mesh.definition.Definition.GetApplicationResponse;
+import jointfaas.mesh.definition.Definition.GetPolicyRequest;
+import jointfaas.mesh.definition.Definition.GetPolicyResponse;
 import jointfaas.mesh.definition.Definition.StatusCode;
 import jointfaas.mesh.definition.Definition.UpdateFunctionRequest;
 import jointfaas.mesh.definition.Definition.UpdateFunctionResponse;
+import jointfaas.mesh.definition.Definition.UpdatePolicyRequest;
+import jointfaas.mesh.definition.Definition.UpdatePolicyResponse;
 import jointfaas.mesh.definition.DefinitionServerGrpc;
 import jointfaas.mesh.definition.DefinitionServerGrpc.DefinitionServerBlockingStub;
 import jointfaas.mesh.definition.DefinitionServerGrpc.DefinitionServerStub;
@@ -68,8 +78,8 @@ public class MeshClient {
   @Value("${mesh.target}")
   String target;
 
-  @Value("${mesh.definition}")
-  String definition;
+  @Value("#{'${mesh.definition}'.split(',')}")
+  List<String> definition;
 
   @Value("${mesh.trace.host}")
   String traceHost;
@@ -155,31 +165,31 @@ public class MeshClient {
         @Override
         public void run() {
           String hash = "";
-          Float lastPrice =  null;
+          Float lastPrice = null;
           Cluster lastCluster = null;
           while (true) {
-              if (hash.equals(cluster.toString()) && price.equals(lastPrice)) {
-                Thread.sleep(100);
-                continue;
-              }
-              hash = cluster.toString();
-              lastPrice = price;
-              lastCluster = new Cluster(cluster);
-              logger.info("update cluster:" + cluster.toString());
-              logger.info("update price:" + lastPrice);
-              UpdateFunctionRequest req = UpdateFunctionRequest.newBuilder()
-                  .setFunctionSpec(FunctionSpec.newBuilder()
-                      .setName(functionName).
-                          setInfo(Info.newBuilder()
-                              .setInternalUrl(internalUrl)
-                              .setPrice(lastPrice)
-                              .setUrl(url)
-                              .addAllInstances(lastCluster.instances)
-                              .build())
-                      .setProvider(provider)
-                      .build())
-                  .build();
-              updateFunctionRequestObserver.onNext(req);
+            if (hash.equals(cluster.toString()) && price.equals(lastPrice)) {
+              Thread.sleep(100);
+              continue;
+            }
+            hash = cluster.toString();
+            lastPrice = price;
+            lastCluster = new Cluster(cluster);
+            logger.info("update cluster:" + cluster.toString());
+            logger.info("update price:" + lastPrice);
+            UpdateFunctionRequest req = UpdateFunctionRequest.newBuilder()
+                .setFunctionSpec(FunctionSpec.newBuilder()
+                    .setName(functionName).
+                        setInfo(Info.newBuilder()
+                            .setInternalUrl(internalUrl)
+                            .setPrice(lastPrice)
+                            .setUrl(url)
+                            .addAllInstances(lastCluster.instances)
+                            .build())
+                    .setProvider(provider)
+                    .build())
+                .build();
+            updateFunctionRequestObserver.onNext(req);
             Thread.sleep(100);
           }
         }
@@ -204,10 +214,16 @@ public class MeshClient {
     }
   }
 
+  public String chooseDefinition() {
+    logger.info(definition);
+    return definition.get((int)(Math.random() * definition.size()));
+  }
+
   public void syncFunctionInfo(String functionName, String internalUrl, String url,
       BlockingQueue<Float> priceUpstream, BlockingQueue<Cluster> clusterUpstream,
       String provider) {
-    ManagedChannel channel = ManagedChannelBuilder.forTarget(definition).usePlaintext()
+
+    ManagedChannel channel = ManagedChannelBuilder.forTarget(chooseDefinition()).usePlaintext()
         .build();
     DefinitionServerStub client = DefinitionServerGrpc.newStub(channel);
     UpdateFunctionClient ufc = new UpdateFunctionClient(functionName, internalUrl, url,
@@ -327,7 +343,7 @@ public class MeshClient {
   public void injectEnv(Map<String, String> env, String provider, String functionName) {
     env.put("PROVIDER", provider);
     env.put("FUNC_NAME", functionName);
-    env.put("POLICY", "simple"); // todo hard code
+    env.put("MESH", target);
   }
 
   public void createApplication(String applicationName, String entryStep,
@@ -336,7 +352,7 @@ public class MeshClient {
     for (StepDto s : rawSteps.values()) {
       steps.put(s.getStepName(), s.ToStep());
     }
-    ManagedChannel channel = ManagedChannelBuilder.forTarget(definition).usePlaintext()
+    ManagedChannel channel = ManagedChannelBuilder.forTarget(chooseDefinition()).usePlaintext()
         .build();
     DefinitionServerBlockingStub client = DefinitionServerGrpc
         .newBlockingStub(channel);
@@ -358,7 +374,7 @@ public class MeshClient {
   }
 
   public Application getApplication(String applicationName) {
-    ManagedChannel channel = ManagedChannelBuilder.forTarget(definition).usePlaintext()
+    ManagedChannel channel = ManagedChannelBuilder.forTarget(chooseDefinition()).usePlaintext()
         .build();
     DefinitionServerBlockingStub client = DefinitionServerGrpc
         .newBlockingStub(channel);
@@ -376,7 +392,7 @@ public class MeshClient {
 
 
   public void deleteApplication(String applicationName) {
-    ManagedChannel channel = ManagedChannelBuilder.forTarget(definition).usePlaintext()
+    ManagedChannel channel = ManagedChannelBuilder.forTarget(chooseDefinition()).usePlaintext()
         .build();
     DefinitionServerBlockingStub client = DefinitionServerGrpc
         .newBlockingStub(channel);
@@ -388,6 +404,71 @@ public class MeshClient {
       throw new RuntimeException(resp.getMsg());
     }
     channel.shutdown();
+  }
+
+  public void createPolicy(PolicyDto policyDto) {
+    ManagedChannel channel = ManagedChannelBuilder.forTarget(chooseDefinition()).usePlaintext()
+        .build();
+    DefinitionServerBlockingStub client = DefinitionServerGrpc
+        .newBlockingStub(channel);
+    CreatePolicyResponse resp = client
+        .createPolicy(CreatePolicyRequest.newBuilder()
+            .setPolicy(policyDto.ToPolicy())
+            .build());
+    if (!resp.getStatusCode().equals(StatusCode.OK)) {
+      channel.shutdown();
+      throw new RuntimeException(resp.getStatusCode().toString());
+    }
+    channel.shutdown();
+  }
+
+  public void deletePolicy(String name) {
+    ManagedChannel channel = ManagedChannelBuilder.forTarget(chooseDefinition()).usePlaintext()
+        .build();
+    DefinitionServerBlockingStub client = DefinitionServerGrpc
+        .newBlockingStub(channel);
+    DeletePolicyResponse resp = client
+        .deletePolicy(DeletePolicyRequest.newBuilder()
+            .setName(name)
+            .build());
+    if (!resp.getStatusCode().equals(StatusCode.OK)) {
+      channel.shutdown();
+      throw new RuntimeException(resp.getStatusCode().toString());
+    }
+    channel.shutdown();
+  }
+
+  public void updatePolicy(PolicyDto policyDto) {
+    ManagedChannel channel = ManagedChannelBuilder.forTarget(chooseDefinition()).usePlaintext()
+        .build();
+    DefinitionServerBlockingStub client = DefinitionServerGrpc
+        .newBlockingStub(channel);
+    UpdatePolicyResponse resp = client
+        .updatePolicy(UpdatePolicyRequest.newBuilder()
+            .setPolicy(policyDto.ToPolicy())
+            .build());
+    if (!resp.getStatusCode().equals(StatusCode.OK)) {
+      channel.shutdown();
+      throw new RuntimeException(resp.getStatusCode().toString());
+    }
+    channel.shutdown();
+  }
+
+  public PolicyDto getPolicy(String name) {
+    ManagedChannel channel = ManagedChannelBuilder.forTarget(chooseDefinition()).usePlaintext()
+        .build();
+    DefinitionServerBlockingStub client = DefinitionServerGrpc
+        .newBlockingStub(channel);
+    GetPolicyResponse resp = client
+        .getPolicy(GetPolicyRequest.newBuilder()
+            .setName(name)
+            .build());
+    if (!resp.getStatusCode().equals(StatusCode.OK)) {
+      channel.shutdown();
+      throw new RuntimeException(resp.getStatusCode().toString());
+    }
+    channel.shutdown();
+    return new PolicyDto(resp.getPolicy());
   }
 
 //  public void updateApplication(String applicationName, List<String> rawSteps) {
@@ -416,7 +497,7 @@ public class MeshClient {
 //  }
 
   public void createFunctionInMesh(String name, String method) {
-    ManagedChannel channel = ManagedChannelBuilder.forTarget(definition).usePlaintext()
+    ManagedChannel channel = ManagedChannelBuilder.forTarget(chooseDefinition()).usePlaintext()
         .build();
     DefinitionServerBlockingStub client = DefinitionServerGrpc
         .newBlockingStub(channel);
@@ -433,7 +514,7 @@ public class MeshClient {
   }
 
   public void deleteFunctionInMesh(String name) {
-    ManagedChannel channel = ManagedChannelBuilder.forTarget(definition).usePlaintext()
+    ManagedChannel channel = ManagedChannelBuilder.forTarget(chooseDefinition()).usePlaintext()
         .build();
     DefinitionServerBlockingStub client = DefinitionServerGrpc
         .newBlockingStub(channel);
@@ -442,6 +523,7 @@ public class MeshClient {
         .build());
     channel.shutdown();
   }
+
 
   // XDS will connection to mesh control plane and sync information storing in memory.
   // this function should call in thread at start time (only once)

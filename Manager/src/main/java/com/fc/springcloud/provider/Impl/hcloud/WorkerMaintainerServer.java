@@ -74,7 +74,7 @@ public class WorkerMaintainerServer extends ManagerImplBase {
     this.gatewayEvents = gatewayEvents;
   }
 
-  private Long getInstancesNumByWithPreFunctionName(String functionName) {
+  public Long getInstancesNumByWithPreFunctionName(String functionName) {
     Long target = 0L;
     for (Worker worker : this.workers.values()) {
       target += worker.GetInstancesNumByFunctionName(functionName);
@@ -470,6 +470,12 @@ public class WorkerMaintainerServer extends ManagerImplBase {
       Long total = worker.GetTotalInstances();
       if (total < lowerBound) {
         target = worker;
+        lowerBound = total;
+      } else if (total.longValue() == lowerBound.longValue()) {
+        if(Math.random() > 0.5) {
+          target = worker;
+          continue;
+        }
       }
     }
     readLock.unlock();
@@ -483,7 +489,7 @@ public class WorkerMaintainerServer extends ManagerImplBase {
       logger.warn("there are no workers");
       throw new NoWorkerException("there are no workers");
     }
-    int increaseNum = targetNum - this.GetInstanceByFunctionName(resource.funcName).size();
+    int increaseNum = (int) (targetNum - this.getInstancesNumByWithPreFunctionName(resource.funcName));
     logger.info("increase function: " + resource.funcName + " with result " + increaseNum);
     // choose the first one now, here we can add policy to choose
     for (int i = 0; i < increaseNum; ++i) {

@@ -69,16 +69,22 @@ public class PrometheusResource {
         Gson gson = new Gson();
         PrometheusResponse requestResult = gson
             .fromJson(responseBody.string(), PrometheusResponse.class);
+//        logger.info("get prometheus response");
+//        logger.info(requestResult);
         if (requestResult != null && requestResult.getStatus().equals("success")) {
           for (MetricsResult result : requestResult.getData().getResult()) {
             String functionName = result.getMetric().getString("function");
             Double timestamp = result.getValue().getDouble(0);
             double value = Double.parseDouble(result.getValue().getString(1));
-            this.queue.add(new MetricsEvent(functionName, value,
-                new Date(new Timestamp(timestamp.longValue()).getTime())));
+            try {
+              this.queue.add(new MetricsEvent(functionName, value,
+                  new Date(new Timestamp(timestamp.longValue()).getTime())));
+            } catch(Exception e) {
+              continue;
+            }
           }
         }
-        Thread.sleep(5000);
+        Thread.sleep(20000);
       }
     }
   }

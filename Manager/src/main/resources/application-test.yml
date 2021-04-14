@@ -29,6 +29,7 @@ spring:
       database: jccplatform
 hcloud:
   port: 30347
+  batchScale: true
 
 mybatis:
   config-location: classpath:mybatis/mybatis-config.xml
@@ -52,17 +53,17 @@ mesh:
   internalGatewayLocation: 10.0.89.3:2046
   externalGatewayLocation: 202.120.40.8:30344
   routerPrefix: /function/
-  definition: 106.15.225.249:50051
-  target: 106.15.225.249:40041
+  definition: 10.0.0.42:50051,10.0.0.7:50051,10.0.0.19:50051
+  target: 10.0.0.42:40041
   prom:
-    target: 10.0.88.5:9090
+    target: 127.0.0.1:30349
   trace:
     host: 106.15.225.249
     port: 6832
   runtime:
     java: registry.cn-shanghai.aliyuncs.com/jointfaas-serverless/env-java:v1.0
     python: registry.cn-shanghai.aliyuncs.com/jointfaas-serverless/env-python:v3.0
-    nodejs: registry.cn-shanghai.aliyuncs.com/jointfaas-serverless/env-javascript:v7.0
+    nodejs: registry.cn-shanghai.aliyuncs.com/jointfaas-serverless/env-javascript:v7.2
 aliyun:
   service:
     REGION: cn-hangzhou

@@ -44,18 +44,3 @@ logging:
     path: logs/${project.name}-${project.version}
 File:
   base-dir: ./
-aliyun:
-  service:
-    REGION: cn-hangzhou
-    ROLE: acs:ram::1727804214750599:role/AliyunFCLogExecutionRole
-  user:
-    accessKey: LTAI4GH6AT8SMifeXJk2dQch
-    accessSecretKey: EPZ6KLb6NMV25fEuGjNnJuFrrfJeNE
-    accountId: 1727804214750599
-mesh:
-  use: true
-  definition: 106.15.225.249:50051
-  target: 106.15.225.249:40041
-  trace:
-    host: 106.15.225.249
-    port: 6832

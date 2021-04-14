@@ -171,8 +171,8 @@ public class Worker {
     for (String funcName : instances.keySet()) {
       List<String> funcInstances = instances.get(funcName);
       count += funcInstances.size();
-      preInstances.forEachValue(Long.MAX_VALUE, longAdder::add);
     }
+    preInstances.forEachValue(Long.MAX_VALUE, longAdder::add);
     return count + longAdder.longValue();
   }
 

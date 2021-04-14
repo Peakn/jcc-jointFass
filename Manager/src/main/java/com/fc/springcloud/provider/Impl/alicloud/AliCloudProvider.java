@@ -23,7 +23,10 @@ import com.aliyuncs.fc.response.ListFunctionsResponse;
 import com.aliyuncs.fc.response.UpdateFunctionResponse;
 import com.fc.springcloud.config.AliyunConfig;
 import com.fc.springcloud.enums.RunEnvEnum;
+import com.fc.springcloud.mapping.FunctionMapper;
 import com.fc.springcloud.mesh.MeshClient;
+import com.fc.springcloud.pojo.domain.FunctionDo;
+import com.fc.springcloud.pojo.query.FunctionQuery;
 import com.fc.springcloud.provider.Impl.alicloud.exception.CreateTriggerException;
 import com.fc.springcloud.provider.PlatformProvider;
 import com.fc.springcloud.util.ZipUtil;
@@ -33,6 +36,7 @@ import java.net.URL;
 import java.nio.file.Files;
 import java.nio.file.Paths;
 import java.util.HashMap;
+import java.util.List;
 import java.util.Map;
 import java.util.concurrent.ArrayBlockingQueue;
 import java.util.concurrent.BlockingQueue;
@@ -67,6 +71,9 @@ public class AliCloudProvider implements PlatformProvider {
   @Autowired
   private MeshClient meshInjector;
 
+  @Autowired
+  private FunctionMapper functionMapper;
+
   private Map<String, BlockingQueue<Float>> priceSyncCollection;
 
   private ReadWriteLock lock;
@@ -74,6 +81,14 @@ public class AliCloudProvider implements PlatformProvider {
   public AliCloudProvider() {
     priceSyncCollection = new HashMap<>();
     lock = new ReentrantReadWriteLock();
+  }
+
+  public void Start() {
+    logger.info("alicloud start !!!!!!!!!!!!");
+    List<FunctionDo> functions = this.functionMapper.listFunctionByPages(new FunctionQuery());
+    for (FunctionDo func : functions) {
+      this.SyncFunction(func.getFunctionName());
+    }
   }
 
   public void CreateTrigger(String functionName) {
@@ -134,6 +149,20 @@ public class AliCloudProvider implements PlatformProvider {
     return Files.readAllBytes(Paths.get(tmpFile.getPath()));
   }
 
+  public void SyncFunction(String functionName) {
+    Lock writeLock = lock.writeLock();
+    writeLock.lock();
+    BlockingQueue<Float> priceStream = priceSyncCollection.get(functionName);
+    if (priceStream == null) {
+      priceStream = new ArrayBlockingQueue<>(100);
+      priceSyncCollection.put(functionName, priceStream);
+    }
+    writeLock.unlock();
+    // todo set the priceUpstream
+    meshInjector.syncFunctionInfo(functionName, config.GetInternalFunctionUrl(functionName),
+        config.GetFunctionUrl(functionName), priceStream, null, "alicloud");
+  }
+
   @Override
   public void CreateFunction(String functionName, String codeURL, String runTimeEnvir)
       throws IOException {
@@ -175,17 +204,7 @@ public class AliCloudProvider implements PlatformProvider {
       logger.info("step 7");
       logger.info("Created function, request ID " + cfResp.getRequestId());
       logger.info("Create function at time: " + cfResp.getCreatedTime());
-      Lock writeLock = lock.writeLock();
-      writeLock.lock();
-      BlockingQueue<Float> priceStream = priceSyncCollection.get(functionName);
-      if (priceStream == null) {
-        priceStream = new ArrayBlockingQueue<>(100);
-        priceSyncCollection.put(functionName, priceStream);
-      }
-      writeLock.unlock();
-      // todo set the priceUpstream
-      meshInjector.syncFunctionInfo(functionName, config.GetInternalFunctionUrl(functionName),
-          config.GetFunctionUrl(functionName), priceStream, null, "alicloud");
+      SyncFunction(functionName);
       logger.info("step 8");
     } catch (ClientException e) {
       if (e.getErrorCode().equals("ServiceNotFound")) {
