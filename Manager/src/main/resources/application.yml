@@ -22,7 +22,7 @@ spring:
     mongodb:
       username: admin
       password: secret
-      host: 106.15.225.249
+      host: mesh
       port: 27017
       database: jccplatform
 hcloud:

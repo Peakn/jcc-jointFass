@@ -24,8 +24,8 @@ public class HCloudWithWorkerTest {
 
   String testFuncNameA = "test-funcA";
   String testFuncNameB = "test-funcB";
-  String testCodeURIA = "http://106.15.225.249:8081/index-old.zip";
-  String testCodeURIB = "http://106.15.225.249:8081/index-old-callee.zip";
+  String testCodeURIA = "http://mesh:8081/index-old.zip";
+  String testCodeURIB = "http://mesh:8081/index-old-callee.zip";
   String testRuntime = "python3";
   MeshClient meshClient = null;
   String applicationName = "test-hcloud";
@@ -35,10 +35,10 @@ public class HCloudWithWorkerTest {
 
     hCloudProvider = new HCloudProvider();
     meshClient = new MeshClient();
-    meshClient.setDefinition(Collections.singletonList("106.15.225.249:50051"));
-    meshClient.setTarget("106.15.225.249:40041");
+    meshClient.setDefinition(Collections.singletonList("mesh:50051"));
+    meshClient.setTarget("mesh:40041");
     meshClient.setTracePort(6832);
-    meshClient.setTraceHost("106.15.225.249");
+    meshClient.setTraceHost("mesh");
     meshClient.deleteFunctionInMesh(testFuncNameA);
     meshClient.createFunctionInMesh(testFuncNameA, "GET");
     hCloudProvider.setMeshInjector(meshClient);

@@ -11,7 +11,7 @@ public class testManager {
             .build();
         String time = Long.toString(System.currentTimeMillis() /1000);
 
-        String nowUrl = "http://202.120.40.8:30348/api/v1/query?query=sum+by%28function%29%28increase%28qps%5B10s%5D%29%29&time=" + time;
+        String nowUrl = "http://prometheus:9090/api/v1/query?query=sum+by%28function%29%28increase%28qps%5B10s%5D%29%29&time=" + time;
         System.out.println(nowUrl);
         Request request = new Request.Builder().url(nowUrl).build();
         ResponseBody responseBody = client.newCall(request).execute().body();

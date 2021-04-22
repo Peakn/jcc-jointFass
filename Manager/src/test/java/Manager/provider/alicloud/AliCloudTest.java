@@ -29,8 +29,8 @@ import org.springframework.util.ResourceUtils;
 
     @Test
     public void CreateFunctionTest() throws IOException {
-        aliCloudProvider.CreateFunction("pythonA", "http://106.15.225.249:8081/pythonA.zip", "python3");
-        aliCloudProvider.CreateFunction("pythonB", "http://106.15.225.249:8081/pythonB.zip", "python3");
+        aliCloudProvider.CreateFunction("pythonA", "http://mesh:8081/pythonA.zip", "python3");
+        aliCloudProvider.CreateFunction("pythonB", "http://mesh:8081/pythonB.zip", "python3");
     }
 
     @Test
@@ -40,7 +40,7 @@ import org.springframework.util.ResourceUtils;
 
     @Test
     public void DownloadFunction(){
-        String codeURI = "http://106.15.225.249:8081/index.zip";
+        String codeURI = "http://mesh:8081/index.zip";
         String runtime = "python3";
         File[] addFiles = new File[1];
         try {
@@ -59,8 +59,8 @@ import org.springframework.util.ResourceUtils;
     // Mergev2 is use 127 mill
     @Test
     public void ZipFunction() {
-        String codeURI = "http://106.15.225.249:8081/index.zip";
-        String envCodeURI = "http://106.15.225.249:8081/env-py.zip";
+        String codeURI = "http://mesh:8081/index.zip";
+        String envCodeURI = "http://mesh:8081/env-py.zip";
         String runtime = "python3";
         try {
             File tmpFile = new File("huangemingzi1.zip");

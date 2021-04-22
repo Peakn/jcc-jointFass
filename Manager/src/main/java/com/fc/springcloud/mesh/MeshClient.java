@@ -265,16 +265,16 @@ public class MeshClient {
         if (envPython.exists()) {
           envCodeURI = envPython.toURI().toURL().toString();
         } else {
-          envCodeURI = "http://106.15.225.249:8081/env-py.zip";
+          envCodeURI = "http://mesh:8081/env-py.zip";
         }
         break;
       }
       case nodejs10: {
-        File envJS = new File("./env-js.zip");
+        File envJS = new File("./env-js.zip"); // code from aliyun-javascript-mesh-wrapper
         if (envJS.exists()) {
           envCodeURI = envJS.toURI().toURL().toString();
         } else {
-          envCodeURI = "http://106.15.225.249:8081/env-js.zip";
+          envCodeURI = "http://mesh:8081/env-js.zip";
         }
         break;
       }
