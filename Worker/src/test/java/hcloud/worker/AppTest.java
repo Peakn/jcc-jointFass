@@ -52,15 +52,15 @@ import org.junit.Test;
  */
 public class AppTest {
 
-  static private final String JAVACodeURI = "http://106.15.225.249:8081/index.jar";
+  static private final String JAVACodeURI = "http://mesh:8081/index.jar";
   static private final String JAVAFuncName = "test-java";
   static private final String JAVAImage = "registry.cn-shanghai.aliyuncs.com/jointfaas-serverless/env-java:v1.0";
   static private final String JAVARuntime = "Java8";
-  static private final String PythonCodeURI = "http://106.15.225.249:8081/index-old.zip";
+  static private final String PythonCodeURI = "http://mesh:8081/index-old.zip";
   static private final String PythonFuncName = "test-python";
   static private final String PythonImage = "registry.cn-shanghai.aliyuncs.com/jointfaas-serverless/env-python:v1.0";
   static private final String PythonRuntime = "Python3";
-  static private final String JSCodeURI = "http://106.15.225.249:8081/index-js.zip";
+  static private final String JSCodeURI = "http://mesh:8081/index-js.zip";
   static private final String JSFuncName = "test-js";
   static private final String JSImage = "registry.cn-shanghai.aliyuncs.com/jointfaas-serverless/env-javascript:v1.0";
   static private final String JSRuntime = "Node10";

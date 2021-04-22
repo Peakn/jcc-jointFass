@@ -66,7 +66,7 @@ public class Client {
     env.add("FUNC_NAME=" + resource.funcName);
     env.add("CODE_URI=" + resource.codeUrI);
     env.add("POLICY="+ config.getProperty("policy", "simple"));
-    env.add("MESH=" + config.getProperty("mesh", "106.15.225.249:40041"));
+    env.add("MESH=" + config.getProperty("mesh", "mesh:40041"));
     // runtime will know it's own memory limitation
     env.add("NMSL=1");
     try {

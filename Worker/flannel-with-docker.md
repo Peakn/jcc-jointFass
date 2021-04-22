@@ -74,7 +74,7 @@ WantedBy=multi-user.target
 配置 /etc/flannel/flanneld.conf
 
 ```ini
-FLANNEL_ETCD_ENDPOINTS="http://106.15.225.249:3379" # etcd 的位置
+FLANNEL_ETCD_ENDPOINTS="http://mesh:3379" # etcd 的位置
 FLANNEL_ETCD_PREFIX="/flannel/network" # 这里的参数与 etcd 里面数据的prefix key是对应的
 FLANNEL_OPTIONS="-iface=ens3 #具体该用什么iface 建议ifconfig 看一下
 ```
