@@ -120,6 +120,8 @@ public class HCloudProvider implements PlatformProvider {
   private BlockingQueue<ScheduleEvent> scheduleEvents;
   private BlockingQueue<GatewayEvent> gatewayEvents;
 
+  private Map<String, BlockingQueue<Float>> priceSyncCollection;
+
   @Value("${mesh.runtime.java:registry.cn-shanghai.aliyuncs.com/jointfaas-serverless/env-java:v1.0}")
   private String JAVA_RUNTIME;
 
@@ -157,6 +159,7 @@ public class HCloudProvider implements PlatformProvider {
         this.hasChangedLock, this.gatewayEvents);
     this.backend = Executors.newFixedThreadPool(4);
     this.clusterSyncCollection = new HashMap<>();
+    this.priceSyncCollection = new HashMap<>();
     this.clusterSyncCollectionLock = new ReentrantLock();
     this.scheduleEvents = new ArrayBlockingQueue<ScheduleEvent>(100);
   }
@@ -169,6 +172,7 @@ public class HCloudProvider implements PlatformProvider {
           "http://" + serverAddress + ":" + serverPort + "/functionFile/" + func.getFunctionId(),
           func.getRunEnv().getDisplayName());
     }
+    this.prometheusResource.SetPriceSyncCollection(this.priceSyncCollection);
     this.scheduler = new Scheduler(this.prometheusResource.Register(), this.scheduleEvents,
         this.gatewayEvents, this);
     this.prometheusResource.Start();
@@ -275,7 +279,7 @@ public class HCloudProvider implements PlatformProvider {
       String url = "http://"+ config.externalGatewayLocation + config.routerPrefix + funcName;
       String internalUrl = "http://"+ config.internalGatewayLocation + config.routerPrefix + funcName;
       meshInjector.syncFunctionInfo(funcName, internalUrl, url, null,
-          clusterSyncCollection.get(funcName), "hcloud");
+      clusterSyncCollection.get(funcName), "hcloud");
     }
     clusterSyncCollectionLock.unlock();
   }

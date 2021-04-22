@@ -114,6 +114,11 @@ public class Worker {
 
   public void CreateContainer(Resource resource) {
     WorkerBlockingStub client = WorkerGrpc.newBlockingStub(channel);
+    Long result = this.preInstances
+        .computeIfPresent(resource.funcName, (key, value) -> value + 1);
+    if (result == null) {
+      this.preInstances.put(resource.funcName, 1L);
+    }
     if (resources.get(resource.funcName) != null && resources.get(resource.funcName)
         .equals(resource)) {
       CreateContainerResp resp = client
@@ -121,11 +126,6 @@ public class Worker {
               .setFuncName(resource.funcName)
               .build());
       logger.info("create container with function:" + resource.funcName);
-      Long result = this.preInstances
-          .computeIfPresent(resource.funcName, (key, value) -> value + 1);
-      if (result == null) {
-        this.preInstances.put(resource.funcName, 1L);
-      }
     } else {
       throw new CreateContainerException("resource is null", this.identity);
     }

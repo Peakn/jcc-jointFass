@@ -7,6 +7,7 @@ import com.fc.springcloud.pojo.dto.PrometheusResponse;
 import com.google.gson.Gson;
 import java.sql.Timestamp;
 import java.util.Date;
+import java.util.Map;
 import java.util.concurrent.ArrayBlockingQueue;
 import java.util.concurrent.BlockingQueue;
 import java.util.concurrent.ExecutorService;
@@ -31,6 +32,8 @@ public class PrometheusResource {
   private final ExecutorService backend;
   @Value("${mesh.prom.target}")
   String target;
+
+  private Map<String, BlockingQueue<Float>> priceSyncCollection;
 
   private class PrometheusPoller implements Runnable {
 
@@ -92,6 +95,11 @@ public class PrometheusResource {
   public PrometheusResource() {
     this.queue = new ArrayBlockingQueue<MetricsEvent>(100);
     this.backend = Executors.newCachedThreadPool();
+  }
+
+  public void SetPriceSyncCollection(
+      Map<String, BlockingQueue<Float>> priceSyncCollection) {
+    this.priceSyncCollection = priceSyncCollection;
   }
 
   public BlockingQueue<MetricsEvent> Register() {

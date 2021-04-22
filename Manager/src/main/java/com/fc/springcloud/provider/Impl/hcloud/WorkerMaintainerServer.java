@@ -484,13 +484,14 @@ public class WorkerMaintainerServer extends ManagerImplBase {
   }
 
   // CreateInstance 和 DeleteInstance 下面的实现是对不齐的，这里日后做更细致的考虑。
-  public void CreateInstance(Resource resource, Integer targetNum) {
+  synchronized public void CreateInstance(Resource resource, Integer targetNum) {
     if (!hasWorker()) {
       logger.warn("there are no workers");
       throw new NoWorkerException("there are no workers");
     }
     int increaseNum = (int) (targetNum - this.getInstancesNumByWithPreFunctionName(resource.funcName));
     logger.info("increase function: " + resource.funcName + " with result " + increaseNum);
+
     // choose the first one now, here we can add policy to choose
     for (int i = 0; i < increaseNum; ++i) {
       Worker target = chooseWorker(resource);
