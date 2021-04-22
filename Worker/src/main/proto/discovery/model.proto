@@ -1,0 +1,79 @@
+syntax = "proto3";
+
+option go_package = "ipads.se.sjtu.edu.cn/mesh-control-plane/pkg/model";
+option java_package = "jointfaas.mesh.model";
+package mesh.model;
+
+
+message Info {
+  string url = 1;
+  string internalUrl = 2;
+  float price = 3;
+  repeated string instances = 5;
+}
+
+enum Method { // most useful http method, PATCH and more is not necessary. Also you can add it very simple.
+  UNDEFINED = 0;
+  GET = 1;
+  POST = 2;
+  PUT = 3;
+  DELETE = 4;
+}
+
+message Function {
+  string name = 1;
+  string method = 2;
+  map<string, Info>  infos = 3;
+}
+
+message Step {
+  string stepName = 1;
+  oneof Spec {
+    FunctionStep function = 11;
+    ParallelStep parallel = 12;
+    ConditionStep  condition = 13;
+    EndStep end = 14;
+  }
+}
+
+message FunctionStep {
+  string functionName = 2; // the original step, just run the function
+  string nextStep = 3;
+}
+
+message ParallelStep {
+  repeated string targets = 2;
+  string nextStep = 3;
+}
+
+message ConditionStep {
+  enum Operator {
+    EQ = 0;
+    NEQ = 1;
+    GT = 2;
+    LT = 3;
+    GTE = 4;
+    LTE = 5;
+    NONE = 6;
+  }
+
+  message Condition {
+    Operator operator = 2;
+    string leftValue = 3; // start with $ is a variable or we will try number first and then string
+    string rightValue = 4; // start with $ is a variable or we will try number first and then string
+    string defaultNextStep = 5; // if false
+    string targetNextStep = 6; // if true
+  }
+
+  repeated Condition conditions = 2;
+}
+
+message EndStep {
+  string stepName = 1;
+}
+
+message Application {
+  string name = 1;
+  string entryStep = 2;
+  map<string, Step> steps = 3;
+}

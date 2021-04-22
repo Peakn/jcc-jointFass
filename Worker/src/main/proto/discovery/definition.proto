@@ -1,0 +1,106 @@
+syntax = "proto3";
+
+option go_package = "ipads.se.sjtu.edu.cn/mesh-control-plane/pkg/definition";
+option java_package = "jointfaas.mesh.definition";
+package mesh.definition;
+
+import "discovery/model.proto";
+
+service DefinitionServer {
+  rpc CreateFunction(CreateFunctionRequest) returns (CreateFunctionResponse) {}
+  rpc DeleteFunction(DeleteFunctionRequest) returns (DeleteFunctionResponse) {}
+  rpc UpdateFunction(stream UpdateFunctionRequest) returns (stream UpdateFunctionResponse) {}
+
+  rpc CreateApplication(CreateApplicationRequest) returns (CreateApplicationResponse) {}
+  rpc DeleteApplication(DeleteApplicationRequest) returns (DeleteApplicationResponse) {}
+  rpc GetApplication(GetApplicationRequest) returns (GetApplicationResponse) {}
+  rpc UpdateApplication(UpdateApplicationRequest) returns (UpdateApplicationResponse) {}
+}
+
+enum StatusCode {
+  OK = 0;
+  Error = 1;
+}
+
+message FunctionSpec {
+  string name = 1 ;
+  string provider = 2;
+  model.Info info = 3;
+}
+
+message CreateFunctionRequest {
+  string name = 1;
+  model.Method method = 2;
+}
+
+message CreateFunctionResponse {
+  StatusCode statusCode = 1;
+  string msg = 2;
+}
+
+message DeleteFunctionRequest {
+  string name = 1;
+}
+
+message DeleteFunctionResponse {
+  StatusCode statusCode = 1;
+  string msg = 2;
+}
+
+message UpdateFunctionRequest {
+  FunctionSpec functionSpec = 1;
+}
+
+message UpdateFunctionResponse {
+  StatusCode statusCode = 1;
+  string msg = 2;
+  FunctionSpec functionSpec = 3;
+  map<string, model.Info> infos = 4;
+}
+
+// application
+
+message ApplicationSpec {
+  model.Application application = 1;
+}
+
+
+message CreateApplicationRequest {
+  ApplicationSpec applicationSpec = 1;
+}
+
+message CreateApplicationResponse {
+  StatusCode statusCode = 1;
+  string msg = 2;
+  ApplicationSpec applicationSpec = 3;
+  map<string, model.Info> infos = 4;
+}
+
+message DeleteApplicationRequest {
+  string name = 1;
+}
+
+message DeleteApplicationResponse {
+  StatusCode statusCode = 1;
+  string msg = 2;
+}
+
+message GetApplicationRequest {
+  string name = 1;
+}
+
+message GetApplicationResponse {
+  StatusCode statusCode = 1;
+  string msg = 2;
+  ApplicationSpec applicationSpec = 3;
+}
+
+message UpdateApplicationRequest {
+  ApplicationSpec applicationSpec = 1;
+}
+
+message UpdateApplicationResponse {
+  StatusCode statusCode = 1;
+  string msg = 2;
+  ApplicationSpec applicationSpec = 3;
+}
